@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/daniyalfrd/neurocore/internal/core/version"
+	"github.com/daniyelford/neurocore/internal/core/version"
 )
 
 
