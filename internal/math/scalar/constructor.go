@@ -2,8 +2,10 @@ package scalar
 
 import "github.com/daniyelford/neurocore/internal/core/types"
 
-func New[T types.Number](v T) *Scalar[T] {
+func New[T types.Number](value T) *Scalar[T] {
+
 	return &Scalar[T]{
-		value: v,
+		value: value,
 	}
+
 }
