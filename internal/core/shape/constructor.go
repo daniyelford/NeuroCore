@@ -1,23 +1,31 @@
-package shape
+func New(dims ...int) (*Shape,error){
 
-import "fmt"
-
-func New(dims ...int) (*Shape, error) {
-
-	if len(dims) == 0 {
-		return nil, fmt.Errorf("shape cannot be empty")
+	if len(dims)==0{
+		return nil,ErrEmptyShape
 	}
 
-	for _, d := range dims {
-		if d <= 0 {
-			return nil, fmt.Errorf("invalid dimension: %d", d)
+	size:=1
+
+	cp:=make([]int,len(dims))
+
+	for i,d:=range dims{
+
+		if d<=0{
+			return nil,ErrInvalidDimension
 		}
-	}
 
-	cp := make([]int, len(dims))
-	copy(cp, dims)
+		cp[i]=d
+
+		size*=d
+
+	}
 
 	return &Shape{
-		dims: cp,
-	}, nil
+
+		dims:cp,
+
+		size:size,
+
+	},nil
+
 }

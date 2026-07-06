@@ -1,7 +1,15 @@
 package device
 
-type Device uint8
+type Type uint8
 
 const (
-	CPU Device = iota
+	Unknown Type = iota
+
+	CPU
+
+	CUDA
+
+	Metal
+
+	ROCm
 )
