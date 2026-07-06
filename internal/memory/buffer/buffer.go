@@ -2,9 +2,12 @@ package buffer
 
 import "github.com/daniyelford/neurocore/internal/core/dtype"
 
-type Buffer interface {
-	Len() int
-	ByteLen() int
+type Buffer interface{
+
+	Pointer() unsafe.Pointer
+
+	ByteSize() uintptr
+
 	DType() dtype.DType
-	Clone() Buffer
+
 }
