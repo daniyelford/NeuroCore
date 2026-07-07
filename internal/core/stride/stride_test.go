@@ -3,6 +3,7 @@ package stride
 import (
 	"testing"
 
+	"github.com/daniyelford/neurocore/internal/core/layout"
 	"github.com/daniyelford/neurocore/internal/core/shape"
 )
 
@@ -29,13 +30,24 @@ func TestOffset(t *testing.T) {
 	}
 
 }
-func TestCompute(t *testing.T) {
+func TestComputeRowMajor(t *testing.T) {
 
 	sh := shape.New(3, 224, 224)
 
-	st := Compute(sh)
+	st := Compute(sh, layout.RowMajor)
 
 	if !st.Equal(New(50176, 224, 1)) {
+		t.Fatal()
+	}
+
+}
+func TestComputeColumnMajor(t *testing.T) {
+
+	sh := shape.New(3, 224, 224)
+
+	st := Compute(sh, layout.ColumnMajor)
+
+	if !st.Equal(New(1, 3, 672)) {
 		t.Fatal()
 	}
 

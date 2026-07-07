@@ -3,6 +3,7 @@ package stride
 import (
 	"testing"
 
+	"github.com/daniyelford/neurocore/internal/core/layout"
 	"github.com/daniyelford/neurocore/internal/core/shape"
 )
 
@@ -13,7 +14,7 @@ func BenchmarkCompute(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_ = Compute(sh)
+		_ = Compute(sh, layout.RowMajor)
 	}
 }
 
