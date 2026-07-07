@@ -114,3 +114,62 @@ func TestCanReshape(t *testing.T) {
 	}
 
 }
+func TestExpand(t *testing.T) {
+
+	s := New(224, 224)
+
+	n := s.Expand(0)
+
+	if !n.Equal(New(1, 224, 224)) {
+		t.Fatal()
+	}
+
+}
+
+func TestExpandMiddle(t *testing.T) {
+
+	s := New(10, 20)
+
+	n := s.Expand(1)
+
+	if !n.Equal(New(10, 1, 20)) {
+		t.Fatal()
+	}
+
+}
+
+func TestSqueeze(t *testing.T) {
+
+	s := New(1, 3, 1, 224)
+
+	n := s.Squeeze()
+
+	if !n.Equal(New(3, 224)) {
+		t.Fatal()
+	}
+
+}
+
+func TestAppendShape(t *testing.T) {
+
+	s := New(2, 3)
+
+	n := s.Append(4, 5)
+
+	if !n.Equal(New(2, 3, 4, 5)) {
+		t.Fatal()
+	}
+
+}
+
+func TestPrependShape(t *testing.T) {
+
+	s := New(4, 5)
+
+	n := s.Prepend(2, 3)
+
+	if !n.Equal(New(2, 3, 4, 5)) {
+		t.Fatal()
+	}
+
+}
