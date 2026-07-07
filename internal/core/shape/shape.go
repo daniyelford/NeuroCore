@@ -1,6 +1,8 @@
 package shape
 
+import "github.com/daniyelford/neurocore/internal/core/ndim"
+
+// Shape represents tensor dimensions.
 type Shape struct {
-	dims []int
-	size int
+	vector ndim.Vector
 }

@@ -1,31 +1,10 @@
-func New(dims ...int) (*Shape,error){
+package shape
 
-	if len(dims)==0{
-		return nil,ErrEmptyShape
+import "github.com/daniyelford/neurocore/internal/core/ndim"
+
+// New creates a new Shape.
+func New(dimensions ...int) Shape {
+	return Shape{
+		vector: ndim.New(dimensions...),
 	}
-
-	size:=1
-
-	cp:=make([]int,len(dims))
-
-	for i,d:=range dims{
-
-		if d<=0{
-			return nil,ErrInvalidDimension
-		}
-
-		cp[i]=d
-
-		size*=d
-
-	}
-
-	return &Shape{
-
-		dims:cp,
-
-		size:size,
-
-	},nil
-
 }

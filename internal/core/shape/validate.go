@@ -1,19 +1,6 @@
 package shape
 
-func (s *Shape) IsScalar() bool {
-
-	return s.Rank()==0
-
-}
-
-func (s *Shape) IsVector() bool {
-
-	return s.Rank()==1
-
-}
-
-func (s *Shape) IsMatrix() bool {
-
-	return s.Rank()==2
-
+// Valid reports whether all dimensions are valid.
+func (s Shape) Valid() bool {
+	return s.vector.Valid()
 }

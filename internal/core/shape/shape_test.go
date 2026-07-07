@@ -2,19 +2,115 @@ package shape
 
 import "testing"
 
-func TestShape(t *testing.T) {
+func TestNew(t *testing.T) {
 
-	s, err := New(2, 3, 4)
-
-	if err != nil {
-		t.Fatal(err)
-	}
+	s := New(3, 224, 224)
 
 	if s.Rank() != 3 {
-		t.Fatal("rank should be 3")
+		t.Fatal("invalid rank")
 	}
 
-	if s.NumElements() != 24 {
-		t.Fatal("num elements should be 24")
+	if s.At(1) != 224 {
+		t.Fatal("invalid dimension")
 	}
+}
+
+func TestClone(t *testing.T) {
+
+	s := New(2, 3)
+
+	c := s.Clone()
+
+	if !s.Equal(c) {
+		t.Fatal("clone failed")
+	}
+}
+
+func TestValid(t *testing.T) {
+
+	if !New(2, 3).Valid() {
+		t.Fatal("expected valid shape")
+	}
+
+	if New(2, 0).Valid() {
+		t.Fatal("expected invalid shape")
+	}
+}
+
+func TestGet(t *testing.T) {
+
+	s := New(4, 5)
+
+	v, ok := s.Get(1)
+
+	if !ok {
+		t.Fatal("expected valid index")
+	}
+
+	if v != 5 {
+		t.Fatal("unexpected value")
+	}
+
+	_, ok = s.Get(100)
+
+	if ok {
+		t.Fatal("expected invalid index")
+	}
+}
+func TestNumElements(t *testing.T) {
+
+	s := New(3, 224, 224)
+
+	if s.NumElements() != 150528 {
+		t.Fatal()
+	}
+
+}
+
+func TestScalar(t *testing.T) {
+
+	if !New(1).IsScalar() {
+		t.Fatal()
+	}
+
+	if New(10).IsScalar() {
+		t.Fatal()
+	}
+
+}
+
+func TestVector(t *testing.T) {
+
+	if !New(100).IsVector() {
+		t.Fatal()
+	}
+
+}
+
+func TestMatrix(t *testing.T) {
+
+	if !New(10, 20).IsMatrix() {
+		t.Fatal()
+	}
+
+}
+
+func TestTensor(t *testing.T) {
+
+	if !New(3, 224, 224).IsTensor() {
+		t.Fatal()
+	}
+
+}
+
+func TestCanReshape(t *testing.T) {
+
+	a := New(2, 3)
+
+	b := New(6)
+
+	if !a.CanReshape(b) {
+		t.Fatal()
+	}
+
 }
