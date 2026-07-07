@@ -1,0 +1,38 @@
+# binaries
+
+*.exe
+*.dll
+*.so
+*.dylib
+
+# test
+
+*.test
+*.out
+coverage.out
+
+# IDE
+
+.idea/
+.vscode/
+
+# macOS
+
+.DS_Store
+
+# logs
+
+*.log
+
+# vendor
+
+vendor/
+
+# temp
+
+tmp/
+
+# build
+
+dist/
+bin/
