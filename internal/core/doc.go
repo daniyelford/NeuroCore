@@ -1,7 +1,6 @@
 /*
-Package core contains the fundamental building blocks of NeuroCore.
+Package core contains shared concepts used across NeuroCore.
 
-Everything inside this package is independent from Tensor,
-Autograd and Neural Networks.
+It does not contain implementations such as tensors or memory.
 */
 package core

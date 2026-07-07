@@ -2,23 +2,52 @@ package dtype
 
 import "testing"
 
-func TestSize(t *testing.T) {
-	if Float64.Size() != 8 {
-		t.Fatal("float64 size should be 8")
+func TestLookup(t *testing.T) {
+
+	d, ok := ByName("float32")
+
+	if !ok {
+		t.Fatal("dtype not found")
 	}
 
-	if Int16.Size() != 2 {
-		t.Fatal("int16 size should be 2")
+	if d != Float32 {
+		t.Fatal("invalid dtype")
 	}
+
 }
 
-func TestParse(t *testing.T) {
-	dt, err := Parse("float32")
-	if err != nil {
-		t.Fatal(err)
+func TestNumeric(t *testing.T) {
+
+	if !Float64.IsNumeric() {
+		t.Fatal()
 	}
 
-	if dt != Float32 {
-		t.Fatal("wrong dtype")
+	if !Int32.IsNumeric() {
+		t.Fatal()
 	}
+
+	if Bool.IsNumeric() {
+		t.Fatal()
+	}
+
+}
+
+func TestKinds(t *testing.T) {
+
+	if !Float32.IsFloat() {
+		t.Fatal()
+	}
+
+	if !Int64.IsSigned() {
+		t.Fatal()
+	}
+
+	if !Uint64.IsUnsigned() {
+		t.Fatal()
+	}
+
+	if !Complex64.IsComplex() {
+		t.Fatal()
+	}
+
 }
