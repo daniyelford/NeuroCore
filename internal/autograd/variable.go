@@ -10,6 +10,8 @@ type Variable struct {
 	Grad tensor.Tensor
 
 	RequiresGrad bool
+
+	node *Node
 }
 
 func NewVariable(
@@ -22,6 +24,20 @@ func NewVariable(
 		Data: t,
 
 		RequiresGrad: requires,
+	}
+
+}
+func (v Variable) Node() *Node {
+
+	if v.node != nil {
+
+		return v.node
+
+	}
+
+	return &Node{
+
+		Output: v,
 	}
 
 }

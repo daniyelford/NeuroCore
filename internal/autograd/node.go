@@ -7,3 +7,9 @@ type Node struct {
 
 	Op Operation
 }
+
+func (n *Node) RequiresGrad() bool {
+
+	return n.Output.RequiresGrad
+
+}
