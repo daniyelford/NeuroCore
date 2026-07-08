@@ -1,6 +1,9 @@
 package operations
 
-import "github.com/daniyelford/neurocore/internal/autograd"
+import (
+	"github.com/daniyelford/neurocore/internal/autograd"
+	"github.com/daniyelford/neurocore/internal/core/tensor"
+)
 
 type Add struct {
 	A autograd.Variable
@@ -43,20 +46,14 @@ func (op Add) Forward() autograd.Variable {
 }
 
 func (op Add) Backward(
-	grad autograd.Variable,
-) []autograd.Variable {
+	grad tensor.Tensor,
+) []tensor.Tensor {
 
-	return []autograd.Variable{
+	return []tensor.Tensor{
 
-		autograd.NewVariable(
-			grad.Data,
-			false,
-		),
+		grad,
 
-		autograd.NewVariable(
-			grad.Data,
-			false,
-		),
+		grad,
 	}
 
 }

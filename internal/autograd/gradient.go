@@ -13,3 +13,10 @@ func ZeroLike(
 	)
 
 }
+func HasGradient(
+	v Variable,
+) bool {
+
+	return !v.Grad.Empty()
+
+}

@@ -1,6 +1,9 @@
 package operations
 
-import "github.com/daniyelford/neurocore/internal/autograd"
+import (
+	"github.com/daniyelford/neurocore/internal/autograd"
+	"github.com/daniyelford/neurocore/internal/core/tensor"
+)
 
 type Mul struct {
 	A autograd.Variable
@@ -42,28 +45,24 @@ func (op Mul) Forward() autograd.Variable {
 }
 
 func (op Mul) Backward(
-	grad autograd.Variable,
-) []autograd.Variable {
+	grad tensor.Tensor,
+) []tensor.Tensor {
 
-	ga := grad.Data.Mul(
-		op.B.Data,
-	)
+	ga :=
+		grad.Mul(
+			op.B.Data,
+		)
 
-	gb := grad.Data.Mul(
-		op.A.Data,
-	)
+	gb :=
+		grad.Mul(
+			op.A.Data,
+		)
 
-	return []autograd.Variable{
+	return []tensor.Tensor{
 
-		autograd.NewVariable(
-			ga,
-			false,
-		),
+		ga,
 
-		autograd.NewVariable(
-			gb,
-			false,
-		),
+		gb,
 	}
 
 }

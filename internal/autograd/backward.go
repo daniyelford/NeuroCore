@@ -1,51 +1,52 @@
 package autograd
 
+import "github.com/daniyelford/neurocore/internal/core/tensor"
+
 func Backward(
 	v Variable,
 ) {
 
-	node := v.Node()
+	root := v.Node()
 
-	visited := map[*Node]bool{}
+	nodes :=
+		TopologicalSort(root)
 
-	backwardNode(
-		node,
-		visited,
-	)
+	root.Grad =
+		tensor.New(
+			root.Data.Shape(),
+		)
 
-}
+	root.Grad.Fill(1)
 
-func backwardNode(
-	node *Node,
-	visited map[*Node]bool,
-) {
+	for i := len(nodes) - 1; i >= 0; i-- {
 
-	if visited[node] {
+		node := nodes[i]
 
-		return
+		if node.Op == nil {
 
-	}
-
-	visited[node] = true
-
-	// initial gradient
-
-	node.Output.Grad =
-		node.Output.Data
-
-	for _, parent := range node.Parents {
-
-		if parent.Output.RequiresGrad {
-
-			parent.Output.Grad =
-				node.Output.Grad
+			continue
 
 		}
 
-		backwardNode(
-			parent,
-			visited,
-		)
+		grads :=
+			node.Op.Backward(
+				node.Output.Grad,
+			)
+
+		for index, parent := range node.Parents {
+
+			if !parent.Output.RequiresGrad {
+
+				continue
+
+			}
+
+			Accumulate(
+				&parent.Output,
+				grads[index],
+			)
+
+		}
 
 	}
 

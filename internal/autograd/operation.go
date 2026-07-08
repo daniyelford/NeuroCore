@@ -1,11 +1,13 @@
 package autograd
 
+import "github.com/daniyelford/neurocore/internal/core/tensor"
+
 type Operation interface {
 	Forward() Variable
 
 	Backward(
-		grad Variable,
-	) []Variable
+		grad tensor.Tensor,
+	) []tensor.Tensor
 
 	Name() string
 }

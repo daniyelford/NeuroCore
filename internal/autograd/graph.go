@@ -20,3 +20,8 @@ func (g *Graph) Add(
 	)
 
 }
+func (g *Graph) Clear() {
+
+	g.nodes = nil
+
+}

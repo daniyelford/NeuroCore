@@ -19,6 +19,12 @@ func NewVariable(
 	requires bool,
 ) Variable {
 
+	if !GradEnabled() {
+
+		requires = false
+
+	}
+
 	return Variable{
 
 		Data: t,
