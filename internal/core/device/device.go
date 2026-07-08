@@ -1,7 +1,7 @@
 package device
 
 import (
-	"github.com/daniyelford/neurocore/internal/core/memory"
+	"github.com/daniyelford/neurocore/internal/memory"
 )
 
 type Device interface {
