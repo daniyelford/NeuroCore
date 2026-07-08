@@ -4,21 +4,24 @@ func (t Tensor) At(
 	indices ...int,
 ) float32 {
 
-	offset := t.stride.Offset(indices...)
+	index :=
+		t.offset +
+			t.stride.Offset(indices...)
 
-	return t.memory.At(offset)
+	return t.memory.At(index)
 
 }
-
 func (t Tensor) Set(
 	value float32,
 	indices ...int,
 ) {
 
-	offset := t.stride.Offset(indices...)
+	index :=
+		t.offset +
+			t.stride.Offset(indices...)
 
 	t.memory.Set(
-		offset,
+		index,
 		value,
 	)
 

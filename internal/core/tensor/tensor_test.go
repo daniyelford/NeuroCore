@@ -123,3 +123,30 @@ func TestTryAccess(t *testing.T) {
 	}
 
 }
+func TestReshape(t *testing.T) {
+
+	tensor := From(
+		shape.New(2, 3),
+		[]float32{
+			1, 2, 3,
+			4, 5, 6,
+		},
+	)
+
+	n, ok := tensor.Reshape(
+		shape.New(3, 2),
+	)
+
+	if !ok {
+
+		t.Fatal()
+
+	}
+
+	if n.At(2, 1) != 6 {
+
+		t.Fatal()
+
+	}
+
+}

@@ -15,6 +15,8 @@ type Tensor struct {
 
 	memory memory.Memory
 
+	offset int
+
 	device backend.DeviceType
 
 	layout layout.Order

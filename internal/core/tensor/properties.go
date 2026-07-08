@@ -40,3 +40,8 @@ func (t Tensor) Empty() bool {
 	return t.memory.Empty()
 
 }
+func (t Tensor) Offset() int {
+
+	return t.offset
+
+}
