@@ -2,18 +2,18 @@ package operations
 
 import "github.com/daniyelford/neurocore/internal/autograd"
 
-type Add struct {
+type Mul struct {
 	A autograd.Variable
 
 	B autograd.Variable
 }
 
-func NewAdd(
+func NewMul(
 	a autograd.Variable,
 	b autograd.Variable,
-) Add {
+) Mul {
 
-	return Add{
+	return Mul{
 
 		A: a,
 
@@ -22,39 +22,46 @@ func NewAdd(
 
 }
 
-func (op Add) Name() string {
+func (op Mul) Name() string {
 
-	return "add"
+	return "mul"
 
 }
 
-func (op Add) Forward() autograd.Variable {
+func (op Mul) Forward() autograd.Variable {
 
-	result := op.A.Data.Add(
+	result := op.A.Data.Mul(
 		op.B.Data,
 	)
 
 	return autograd.NewVariable(
 		result,
-		op.A.RequiresGrad ||
-			op.B.RequiresGrad,
+		true,
 	)
 
 }
 
-func (op Add) Backward(
+func (op Mul) Backward(
 	grad autograd.Variable,
 ) []autograd.Variable {
+
+	ga := grad.Data.Mul(
+		op.B.Data,
+	)
+
+	gb := grad.Data.Mul(
+		op.A.Data,
+	)
 
 	return []autograd.Variable{
 
 		autograd.NewVariable(
-			grad.Data,
+			ga,
 			false,
 		),
 
 		autograd.NewVariable(
-			grad.Data,
+			gb,
 			false,
 		),
 	}
