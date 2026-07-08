@@ -1,6 +1,16 @@
 package device
 
+import (
+	"github.com/daniyelford/neurocore/internal/core/memory"
+)
+
 type CPUDevice struct{}
+
+func NewCPU() CPUDevice {
+
+	return CPUDevice{}
+
+}
 
 func (CPUDevice) Type() Type {
 
@@ -8,26 +18,23 @@ func (CPUDevice) Type() Type {
 
 }
 
-func (CPUDevice) Index() int {
-
-	return 0
-
-}
-
 func (CPUDevice) Name() string {
 
-	return "CPU"
-
-}
-
-func (CPUDevice) IsAvailable() bool {
-
-	return true
-
-}
-
-func (CPUDevice) String() string {
-
 	return "cpu"
+
+}
+
+func (CPUDevice) Allocate(size int) memory.Memory {
+
+	return memory.New(size)
+
+}
+
+func (CPUDevice) Copy(
+	dst memory.Memory,
+	src memory.Memory,
+) {
+
+	memory.Copy(dst, src)
 
 }
