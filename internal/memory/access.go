@@ -53,3 +53,13 @@ func (m Memory) TryAt(index int) (float32, bool) {
 	return m.data[index], true
 
 }
+
+// CopyFrom copies values into memory.
+func (m Memory) CopyFrom(values []float32) {
+
+	copy(
+		m.data,
+		values,
+	)
+
+}

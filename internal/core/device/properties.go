@@ -7,3 +7,11 @@ func Default() Device {
 	return cpu
 
 }
+func init() {
+
+	Register(
+		"cpu",
+		NewCPU(),
+	)
+
+}

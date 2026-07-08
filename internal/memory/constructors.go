@@ -1,9 +1,27 @@
 package memory
 
+import (
+	"github.com/daniyelford/neurocore/internal/core/backend"
+)
+
 func New(size int) Memory {
 
+	return NewOnDevice(
+		size,
+		backend.CPU,
+	)
+
+}
+
+func NewOnDevice(
+	size int,
+	dev backend.DeviceType,
+) Memory {
+
 	if size < 0 {
+
 		size = 0
+
 	}
 
 	return Memory{
@@ -11,21 +29,8 @@ func New(size int) Memory {
 		data: make([]float32, size),
 
 		capacity: size,
-	}
 
-}
-
-func From(values []float32) Memory {
-
-	data := make([]float32, len(values))
-
-	copy(data, values)
-
-	return Memory{
-
-		data: data,
-
-		capacity: len(data),
+		device: dev,
 	}
 
 }

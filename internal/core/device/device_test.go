@@ -33,3 +33,20 @@ func TestAllocate(t *testing.T) {
 	}
 
 }
+func TestRegistry(t *testing.T) {
+
+	d, ok := Get("cpu")
+
+	if !ok {
+
+		t.Fatal()
+
+	}
+
+	if d.Name() != "cpu" {
+
+		t.Fatal()
+
+	}
+
+}

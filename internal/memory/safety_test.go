@@ -1,6 +1,10 @@
 package memory
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/daniyelford/neurocore/internal/core/backend"
+)
 
 func TestResize(t *testing.T) {
 
@@ -57,6 +61,17 @@ func TestTryAt(t *testing.T) {
 	_, ok = m.TryAt(10)
 
 	if ok {
+
+		t.Fatal()
+
+	}
+
+}
+func TestMemoryDevice(t *testing.T) {
+
+	m := New(10)
+
+	if m.Device() != backend.CPU {
 
 		t.Fatal()
 

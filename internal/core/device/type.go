@@ -1,7 +1,8 @@
 package device
 
-// Type represents a compute device type.
-type Type uint8
+import "github.com/daniyelford/neurocore/internal/core/backend"
+
+type Type = backend.DeviceType
 
 const (
 	Unknown Type = iota
