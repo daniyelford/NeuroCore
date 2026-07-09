@@ -1,11 +1,13 @@
 package memory
 
-import "github.com/daniyelford/neurocore/internal/core/device"
+import (
+	"github.com/daniyelford/neurocore/internal/core/backend"
+)
 
 type Memory struct {
 	data []float32
 
 	capacity int
 
-	device device.Type
+	device backend.DeviceType
 }

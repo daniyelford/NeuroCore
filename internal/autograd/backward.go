@@ -11,12 +11,12 @@ func Backward(
 	nodes :=
 		TopologicalSort(root)
 
-	root.Grad =
+	root.Output.Grad =
 		tensor.New(
-			root.Data.Shape(),
+			root.Output.Data.Shape(),
 		)
 
-	root.Grad.Fill(1)
+	root.Output.Grad.Fill(1)
 
 	for i := len(nodes) - 1; i >= 0; i-- {
 

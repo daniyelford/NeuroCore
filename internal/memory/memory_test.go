@@ -14,27 +14,27 @@ func TestNew(t *testing.T) {
 
 }
 
-// func TestSetGet(t *testing.T) {
+func TestSetGet(t *testing.T) {
 
-// 	m := New(5)
+	m := New(5)
 
-// 	m.Set(2, 10.5)
+	m.Set(2, 10.5)
 
-// 	v, ok := m.Get(2)
+	v, ok := m.Get(2)
 
-// 	if !ok {
+	if !ok {
 
-// 		t.Fatal()
+		t.Fatal()
 
-// 	}
+	}
 
-// 	if v != 10.5 {
+	if v != 10.5 {
 
-// 		t.Fatal()
+		t.Fatal()
 
-// 	}
+	}
 
-// }
+}
 
 func TestClone(t *testing.T) {
 

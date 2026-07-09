@@ -6,23 +6,7 @@ import (
 )
 
 type Add struct {
-	A autograd.Variable
-
-	B autograd.Variable
-}
-
-func NewAdd(
-	a autograd.Variable,
-	b autograd.Variable,
-) Add {
-
-	return Add{
-
-		A: a,
-
-		B: b,
-	}
-
+	Base
 }
 
 func (op Add) Name() string {
@@ -31,28 +15,29 @@ func (op Add) Name() string {
 
 }
 
-func (op Add) Forward() autograd.Variable {
+func (op *Add) Forward(
+	a autograd.Variable,
+	b autograd.Variable,
+) autograd.Variable {
 
-	result := op.A.Data.Add(
-		op.B.Data,
+	op.Save(a, b)
+
+	out := autograd.NewVariable(
+		a.Data.Add(b.Data),
+		a.RequiresGrad || b.RequiresGrad,
 	)
 
-	return autograd.NewVariable(
-		result,
-		op.A.RequiresGrad ||
-			op.B.RequiresGrad,
-	)
+	op.SetOutput(out)
+
+	return out
 
 }
-
-func (op Add) Backward(
+func (op *Add) Backward(
 	grad tensor.Tensor,
 ) []tensor.Tensor {
 
 	return []tensor.Tensor{
-
 		grad,
-
 		grad,
 	}
 

@@ -11,18 +11,13 @@ func (m Memory) Set(index int, value float32) {
 	m.data[index] = value
 
 }
+func (m Memory) Get(index int) (float32, bool) {
 
-func (v View) Get(index int) (float32, bool) {
-
-	if index < 0 ||
-		index >= v.length {
-
+	if index < 0 || index >= len(m.data) {
 		return 0, false
-
 	}
 
-	return v.At(index), true
-
+	return m.data[index], true
 }
 func (m Memory) TrySet(
 	index int,

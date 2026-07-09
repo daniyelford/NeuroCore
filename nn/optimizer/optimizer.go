@@ -1,8 +1,6 @@
 package optimizer
 
-import (
-	"github.com/daniyelford/neurocore/internal/core/nn"
-)
+import "github.com/daniyelford/neurocore/nn"
 
 type Optimizer interface {
 	Step(

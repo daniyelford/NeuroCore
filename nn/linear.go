@@ -35,26 +35,13 @@ func NewLinear(
 				out,
 			),
 		)
-
+	wv := autograd.NewVariable(w, true)
+	bv := autograd.NewVariable(b, true)
 	return Linear{
-
-		Weight: NewParameter(
-			autograd.NewVariable(
-				w,
-				true,
-			),
-		),
-
-		Bias: NewParameter(
-			autograd.NewVariable(
-				b,
-				true,
-			),
-		),
-
-		In: in,
-
-		Out: out,
+		Weight: NewParameter(&wv),
+		Bias:   NewParameter(&bv),
+		In:     in,
+		Out:    out,
 	}
 
 }
