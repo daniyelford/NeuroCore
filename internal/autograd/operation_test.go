@@ -25,8 +25,8 @@ func TestAddOperation(
 		true,
 	)
 
-	if !a.RequiresGrad ||
-		!b.RequiresGrad {
+	if !a.RequiresGrad() ||
+		!b.RequiresGrad() {
 
 		t.Fatal()
 

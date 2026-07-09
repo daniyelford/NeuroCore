@@ -2,6 +2,10 @@ package autograd
 
 func (v *Variable) ZeroGrad() {
 
-	v.Grad.Zero()
+	if v.node.Grad.Empty() {
+		return
+	}
+
+	v.node.Grad.Zero()
 
 }

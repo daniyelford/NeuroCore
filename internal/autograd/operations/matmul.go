@@ -14,9 +14,9 @@ func (op MatMul) Backward(
 	grad tensor.Tensor,
 ) []tensor.Tensor {
 
-	bt, _ := op.B.Data.Transpose()
+	bt, _ := op.B.Data().Transpose()
 
-	at, _ := op.A.Data.Transpose()
+	at, _ := op.A.Data().Transpose()
 
 	ga, _ := grad.MatMul(bt)
 

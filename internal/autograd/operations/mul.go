@@ -31,10 +31,10 @@ func (op Mul) Name() string {
 
 }
 
-func (op Mul) Forward() autograd.Variable {
+func (op Mul) Forward() *autograd.Variable {
 
-	result := op.A.Data.Mul(
-		op.B.Data,
+	result := op.A.Data().Mul(
+		op.B.Data(),
 	)
 
 	return autograd.NewVariable(
@@ -50,12 +50,12 @@ func (op Mul) Backward(
 
 	ga :=
 		grad.Mul(
-			op.B.Data,
+			op.B.Data(),
 		)
 
 	gb :=
 		grad.Mul(
-			op.A.Data,
+			op.A.Data(),
 		)
 
 	return []tensor.Tensor{

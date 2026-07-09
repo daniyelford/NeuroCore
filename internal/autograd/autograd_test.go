@@ -18,7 +18,7 @@ func TestVariable(t *testing.T) {
 		true,
 	)
 
-	if !v.RequiresGrad {
+	if !v.RequiresGrad() {
 
 		t.Fatal()
 

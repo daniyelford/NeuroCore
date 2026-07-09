@@ -9,7 +9,7 @@ func ZeroLike(
 ) tensor.Tensor {
 
 	return tensor.New(
-		v.Data.Shape(),
+		v.Data().Shape(),
 	)
 
 }
@@ -17,6 +17,6 @@ func HasGradient(
 	v Variable,
 ) bool {
 
-	return !v.Grad.Empty()
+	return !v.Grad().Empty()
 
 }

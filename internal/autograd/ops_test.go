@@ -33,7 +33,7 @@ func TestAddGraph(
 			b,
 		)
 
-	if !c.RequiresGrad {
+	if !c.RequiresGrad() {
 
 		t.Fatal()
 
@@ -41,7 +41,7 @@ func TestAddGraph(
 
 	Backward(c)
 
-	if c.Grad.Empty() {
+	if c.Grad().Empty() {
 
 		t.Fatal()
 

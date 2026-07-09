@@ -1,12 +1,9 @@
 package autograd
 
-func (v Variable) Detach() Variable {
+func (v *Variable) Detach() *Variable {
 
-	return Variable{
-
-		Data: v.Data,
-
-		RequiresGrad: false,
-	}
-
+	return NewVariable(
+		v.Data(),
+		false,
+	)
 }

@@ -37,7 +37,7 @@ func TestDetach(t *testing.T) {
 
 	d := v.Detach()
 
-	if d.RequiresGrad {
+	if d.RequiresGrad() {
 
 		t.Fatal()
 

@@ -3,7 +3,7 @@ package autograd
 import "github.com/daniyelford/neurocore/internal/core/tensor"
 
 func Backward(
-	v Variable,
+	v *Variable,
 ) {
 
 	root := v.Node()
@@ -11,12 +11,12 @@ func Backward(
 	nodes :=
 		TopologicalSort(root)
 
-	root.Output.Grad =
+	root.Grad =
 		tensor.New(
-			root.Output.Data.Shape(),
+			root.Data.Shape(),
 		)
 
-	root.Output.Grad.Fill(1)
+	root.Grad.Fill(1)
 
 	for i := len(nodes) - 1; i >= 0; i-- {
 
@@ -28,21 +28,23 @@ func Backward(
 
 		}
 
-		grads :=
+		grads, err :=
 			node.Op.Backward(
-				node.Output.Grad,
+				node.Grad,
 			)
-
+		if err != nil {
+			panic(err)
+		}
 		for index, parent := range node.Parents {
 
-			if !parent.Output.RequiresGrad {
+			if !parent.RequiresGrad {
 
 				continue
 
 			}
 
 			Accumulate(
-				&parent.Output,
+				parent,
 				grads[index],
 			)
 

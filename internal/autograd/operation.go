@@ -3,11 +3,13 @@ package autograd
 import "github.com/daniyelford/neurocore/internal/core/tensor"
 
 type Operation interface {
-	Forward() Variable
+	Name() string
+
+	Forward(
+		inputs ...*Variable,
+	) (*Variable, error)
 
 	Backward(
 		grad tensor.Tensor,
-	) []tensor.Tensor
-
-	Name() string
+	) ([]tensor.Tensor, error)
 }

@@ -3,21 +3,13 @@ package autograd
 import "github.com/daniyelford/neurocore/internal/core/tensor"
 
 func Accumulate(
-	v *Variable,
+	node *Node,
 	grad tensor.Tensor,
 ) {
-
-	if v.Grad.Empty() {
-
-		v.Grad = grad
-
+	if node.Grad.Empty() {
+		node.Grad = grad
 		return
-
 	}
 
-	v.Grad =
-		v.Grad.Add(
-			grad,
-		)
-
+	node.Grad = node.Grad.Add(grad)
 }

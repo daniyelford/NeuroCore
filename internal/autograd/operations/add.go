@@ -9,36 +9,35 @@ type Add struct {
 	Base
 }
 
-func (op Add) Name() string {
-
-	return "add"
-
-}
-
 func (op *Add) Forward(
-	a autograd.Variable,
-	b autograd.Variable,
-) autograd.Variable {
+	inputs ...*autograd.Variable,
+) (*autograd.Variable, error) {
 
-	op.Save(a, b)
+	a := inputs[0]
+	b := inputs[1]
+
+	op.SaveInputs(a, b)
+
+	outData := a.Data().Add(
+		b.Data(),
+	)
 
 	out := autograd.NewVariable(
-		a.Data.Add(b.Data),
-		a.RequiresGrad || b.RequiresGrad,
+		outData,
+		a.RequiresGrad() || b.RequiresGrad(),
 	)
 
 	op.SetOutput(out)
 
-	return out
-
+	return out, nil
 }
 func (op *Add) Backward(
 	grad tensor.Tensor,
-) []tensor.Tensor {
+) ([]tensor.Tensor, error) {
 
 	return []tensor.Tensor{
 		grad,
 		grad,
-	}
+	}, nil
 
 }

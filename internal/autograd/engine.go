@@ -14,10 +14,14 @@ func NewEngine() *Engine {
 }
 func (e *Engine) Execute(
 	op Operation,
-) Variable {
+	inputs ...*Variable,
+) (*Variable, error) {
 
-	out := op.Forward()
+	out, err := op.Forward(inputs...)
 
-	return out
+	if err != nil {
+		return nil, err
+	}
 
+	return out, nil
 }

@@ -2,18 +2,14 @@ package autograd
 
 func CreateNode(
 	op Operation,
+	output *Variable,
 	parents ...*Node,
 ) *Node {
 
-	node := &Node{
+	node := output.Node()
 
-		Op: op,
-
-		Parents: parents,
-	}
-
-	node.Output = op.Forward()
+	node.Op = op
+	node.Parents = parents
 
 	return node
-
 }

@@ -33,13 +33,13 @@ func TestAddBackward(
 
 	Backward(c)
 
-	if a.Grad.At(0) != 1 {
+	if a.Grad().At(0) != 1 {
 
 		t.Fatal()
 
 	}
 
-	if b.Grad.At(0) != 1 {
+	if b.Grad().At(0) != 1 {
 
 		t.Fatal()
 
