@@ -20,7 +20,7 @@ func BenchmarkAdd(
 
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 
 		_ = a.Add(c)
 
@@ -40,12 +40,8 @@ func BenchmarkAddInplace(
 		shape.New(1000, 1000),
 	)
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-
+	for b.Loop() {
 		a.AddInplace(c)
-
 	}
 
 }

@@ -42,3 +42,12 @@ func NewVariable(
 		},
 	}
 }
+func VariableFromNode(
+	n *Node,
+) *Variable {
+
+	return &Variable{
+		node: n,
+	}
+
+}

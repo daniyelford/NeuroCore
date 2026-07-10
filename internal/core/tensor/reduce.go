@@ -1,5 +1,20 @@
 package tensor
 
+import "github.com/daniyelford/neurocore/internal/core/shape"
+
+func (t Tensor) SumTensor() Tensor {
+
+	sum := t.Sum()
+
+	out := New(
+		shape.New(1),
+	)
+
+	out.Set(sum, 0)
+
+	return out
+
+}
 func (t Tensor) Sum() float32 {
 
 	var result float32
@@ -68,5 +83,21 @@ func (t Tensor) Max() float32 {
 	}
 
 	return value
+
+}
+func (t Tensor) ReduceMean() Tensor {
+
+	value := t.Mean()
+
+	out := New(
+		shape.New(1),
+	)
+
+	out.Set(
+		value,
+		0,
+	)
+
+	return out
 
 }

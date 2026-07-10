@@ -22,3 +22,23 @@ type Node struct {
 	// شناسه اختیاری برای Debug
 	ID uint64
 }
+
+func NewNode(
+	data tensor.Tensor,
+	requiresGrad bool,
+	op Operation,
+	parents ...*Node,
+) *Node {
+
+	return &Node{
+
+		Data: data,
+
+		RequiresGrad: requiresGrad,
+
+		Op: op,
+
+		Parents: parents,
+	}
+
+}

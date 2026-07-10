@@ -11,6 +11,11 @@ type Add struct {
 	Base
 }
 
+func (op *Add) Name() string {
+
+	return "Add"
+
+}
 func (op *Add) Forward(
 	inputs ...*autograd.Variable,
 ) (
@@ -38,11 +43,9 @@ func (op *Add) Forward(
 
 	out :=
 		autograd.NewVariable(
-
 			a.Data().Add(
 				b.Data(),
 			),
-
 			a.RequiresGrad() ||
 				b.RequiresGrad(),
 		)

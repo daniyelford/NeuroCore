@@ -6,9 +6,7 @@ func BenchmarkClone(b *testing.B) {
 
 	m := New(1024 * 1024)
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 
 		_ = m.Clone()
 
@@ -16,16 +14,14 @@ func BenchmarkClone(b *testing.B) {
 
 }
 
-// func BenchmarkGet(b *testing.B) {
+func BenchmarkGet(b *testing.B) {
 
-// 	m := New(1024)
+	m := New(1024)
 
-// 	b.ResetTimer()
+	for b.Loop() {
 
-// 	for i := 0; i < b.N; i++ {
+		_, _ = m.Get(10)
 
-// 		_, _ = m.Get(10)
+	}
 
-// 	}
-
-// }
+}

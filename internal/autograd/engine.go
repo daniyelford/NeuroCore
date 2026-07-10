@@ -35,16 +35,15 @@ func (e *Engine) Execute(
 
 	node.Op = op
 
-	node.Parents =
-		make(
-			[]*Node,
-			len(inputs),
-		)
+	node.Parents = make([]*Node, 0, len(inputs))
 
-	for i, v := range inputs {
+	for _, v := range inputs {
 
-		node.Parents[i] =
-			v.Node()
+		node.Parents =
+			append(
+				node.Parents,
+				v.Node(),
+			)
 
 	}
 

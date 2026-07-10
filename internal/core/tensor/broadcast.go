@@ -76,3 +76,38 @@ func (t Tensor) broadcastAt(
 	return t.memory.At(index)
 
 }
+
+func (t Tensor) Broadcast(
+	target shape.Shape,
+) (Tensor, bool) {
+
+	if t.Shape().Equal(target) {
+
+		return t, true
+
+	}
+
+	if t.Len() != 1 {
+
+		return Tensor{}, false
+
+	}
+
+	out := New(target)
+
+	value := t.memory.At(
+		t.offset,
+	)
+
+	for i := 0; i < out.NumElements(); i++ {
+
+		out.memory.Set(
+			out.memoryIndex(i),
+			value,
+		)
+
+	}
+
+	return out, true
+
+}

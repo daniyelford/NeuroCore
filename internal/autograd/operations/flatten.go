@@ -7,27 +7,30 @@ import (
 	"github.com/daniyelford/neurocore/internal/core/tensor"
 )
 
-type Sigmoid struct {
+type Flatten struct {
 	Base
 }
 
-func (op *Sigmoid) Name() string {
-	return "Sigmoid"
+func (op *Flatten) Name() string {
+	return "Flatten"
 }
 
-func (op *Sigmoid) Forward(
+func (op *Flatten) Forward(
 	inputs ...*autograd.Variable,
 ) (*autograd.Variable, error) {
 
 	if len(inputs) != 1 {
-		return nil, errors.New("sigmoid requires exactly one input")
+		return nil, errors.New("flatten requires exactly one input")
 	}
 
 	x := inputs[0]
 
 	op.Save(x)
 
-	out := x.Data().Sigmoid()
+	out, ok := x.Data().Flatten()
+	if !ok {
+		return nil, errors.New("flatten failed")
+	}
 
 	v := autograd.NewVariable(
 		out,
@@ -39,15 +42,19 @@ func (op *Sigmoid) Forward(
 	return v, nil
 }
 
-func (op *Sigmoid) Backward(
+func (op *Flatten) Backward(
 	grad tensor.Tensor,
 ) ([]tensor.Tensor, error) {
 
-	output := op.Output().Data()
+	in := op.Input(0)
 
-	out := output.SigmoidBackward(
-		grad,
+	out, ok := grad.Reshape(
+		in.Data().Shape(),
 	)
+
+	if !ok {
+		return nil, errors.New("reshape failed")
+	}
 
 	return []tensor.Tensor{
 		out,

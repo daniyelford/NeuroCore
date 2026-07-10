@@ -64,3 +64,23 @@ func (t Tensor) Dot(
 	return sum, true
 
 }
+func (t Tensor) DivScalar(
+	v float32,
+) Tensor {
+
+	out := t.Clone()
+
+	for i := 0; i < out.NumElements(); i++ {
+
+		idx := out.memoryIndex(i)
+
+		out.memory.Set(
+			idx,
+			out.memory.At(idx)/v,
+		)
+
+	}
+
+	return out
+
+}

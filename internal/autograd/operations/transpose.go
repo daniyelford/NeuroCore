@@ -7,27 +7,30 @@ import (
 	"github.com/daniyelford/neurocore/internal/core/tensor"
 )
 
-type Sigmoid struct {
+type Transpose struct {
 	Base
 }
 
-func (op *Sigmoid) Name() string {
-	return "Sigmoid"
+func (op *Transpose) Name() string {
+	return "Transpose"
 }
 
-func (op *Sigmoid) Forward(
+func (op *Transpose) Forward(
 	inputs ...*autograd.Variable,
 ) (*autograd.Variable, error) {
 
 	if len(inputs) != 1 {
-		return nil, errors.New("sigmoid requires exactly one input")
+		return nil, errors.New("transpose requires exactly 1 input")
 	}
 
 	x := inputs[0]
 
 	op.Save(x)
 
-	out := x.Data().Sigmoid()
+	out, ok := x.Data().Transpose()
+	if !ok {
+		return nil, errors.New("cannot transpose tensor")
+	}
 
 	v := autograd.NewVariable(
 		out,
@@ -39,15 +42,14 @@ func (op *Sigmoid) Forward(
 	return v, nil
 }
 
-func (op *Sigmoid) Backward(
+func (op *Transpose) Backward(
 	grad tensor.Tensor,
 ) ([]tensor.Tensor, error) {
 
-	output := op.Output().Data()
-
-	out := output.SigmoidBackward(
-		grad,
-	)
+	out, ok := grad.Transpose()
+	if !ok {
+		return nil, errors.New("cannot transpose gradient")
+	}
 
 	return []tensor.Tensor{
 		out,

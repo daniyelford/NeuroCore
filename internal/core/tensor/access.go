@@ -3,7 +3,6 @@ package tensor
 func (t Tensor) At(
 	indices ...int,
 ) float32 {
-
 	index :=
 		t.offset +
 			t.stride.Offset(indices...)
@@ -54,5 +53,12 @@ func (t Tensor) TrySet(
 		offset,
 		value,
 	)
+
+}
+func (t Tensor) memoryIndex(
+	linear int,
+) int {
+
+	return t.offset + linear
 
 }

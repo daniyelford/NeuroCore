@@ -42,7 +42,6 @@ func (m Memory) TryAt(index int) (float32, bool) {
 		index >= len(m.data) {
 
 		return 0, false
-
 	}
 
 	return m.data[index], true

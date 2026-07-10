@@ -12,9 +12,7 @@ func BenchmarkAccess(b *testing.B) {
 		shape.New(100, 100),
 	)
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 
 		_ = t.At(50, 50)
 
