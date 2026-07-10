@@ -32,7 +32,7 @@ func TestMSE(t *testing.T) {
 		autograd.NewVariable(tg, false),
 	)
 
-	if out.Data.At(0) != 2.5 {
+	if out.Data().At(0) != 2.5 {
 
 		t.Fatal()
 

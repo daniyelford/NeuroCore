@@ -1,5 +1,5 @@
 package operations
 
-type MatMul struct {
+type Mean struct {
 	Base
 }

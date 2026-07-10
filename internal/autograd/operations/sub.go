@@ -7,18 +7,18 @@ import (
 	"github.com/daniyelford/neurocore/internal/core/tensor"
 )
 
-type Mul struct {
+type Sub struct {
 	Base
 }
 
-func (op *Mul) Name() string {
-	return "Mul"
+func (op *Sub) Name() string {
+	return "Sub"
 }
 
-func (op *Mul) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+func (op *Sub) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
 
 	if len(inputs) != 2 {
-		return nil, errors.New("mul requires exactly 2 inputs")
+		return nil, errors.New("sub requires exactly 2 inputs")
 	}
 
 	a := inputs[0]
@@ -27,7 +27,7 @@ func (op *Mul) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error)
 	op.Save(a, b)
 
 	out := autograd.NewVariable(
-		a.Data().Mul(b.Data()),
+		a.Data().Sub(b.Data()),
 		a.RequiresGrad() || b.RequiresGrad(),
 	)
 
@@ -36,12 +36,12 @@ func (op *Mul) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error)
 	return out, nil
 }
 
-func (op *Mul) Backward(
+func (op *Sub) Backward(
 	grad tensor.Tensor,
 ) ([]tensor.Tensor, error) {
 
 	return []tensor.Tensor{
-		grad.Mul(op.Input(1).Data()),
-		grad.Mul(op.Input(0).Data()),
+		grad,
+		grad.Neg(),
 	}, nil
 }

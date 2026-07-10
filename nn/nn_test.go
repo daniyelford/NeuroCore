@@ -19,7 +19,7 @@ func TestLinear(
 		)
 
 	x :=
-		autograd.NewVariable(
+		*autograd.NewVariable(
 			tensor.New(
 				shape.New(1, 3),
 			),
@@ -29,7 +29,7 @@ func TestLinear(
 	y :=
 		layer.Forward(x)
 
-	if y.Data.Shape().Values()[1] != 2 {
+	if y.Data().Shape().Values()[1] != 2 {
 
 		t.Fatal()
 

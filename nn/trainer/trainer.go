@@ -7,22 +7,22 @@ import (
 
 func TrainStep(
 	model *nn.Model,
-	input autograd.Variable,
-	target autograd.Variable,
+	input *autograd.Variable,
+	target *autograd.Variable,
 	lossFunc func(
-		autograd.Variable,
-		autograd.Variable,
-	) autograd.Variable,
+		*autograd.Variable,
+		*autograd.Variable,
+	) *autograd.Variable,
 ) {
 
 	output :=
 		model.Root.Forward(
-			input,
+			*input,
 		)
 
 	loss :=
 		lossFunc(
-			output,
+			&output,
 			target,
 		)
 

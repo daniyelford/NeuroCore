@@ -16,16 +16,16 @@ func NewSigmoid() Sigmoid {
 }
 
 func (s Sigmoid) Forward(
-	input autograd.Variable,
-) autograd.Variable {
+	input *autograd.Variable,
+) *autograd.Variable {
 
 	out := tensor.New(
-		input.Data.Shape(),
+		input.Data().Shape(),
 	)
 
-	for i := 0; i < input.Data.Len(); i++ {
+	for i := 0; i < input.Data().Len(); i++ {
 
-		x := input.Data.At(i)
+		x := input.Data().At(i)
 
 		y := float32(
 			1.0 /
@@ -41,7 +41,7 @@ func (s Sigmoid) Forward(
 
 	return autograd.NewVariable(
 		out,
-		input.RequiresGrad,
+		input.RequiresGrad(),
 	)
 
 }

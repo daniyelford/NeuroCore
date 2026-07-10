@@ -15,13 +15,41 @@ func NewEngine() *Engine {
 func (e *Engine) Execute(
 	op Operation,
 	inputs ...*Variable,
-) (*Variable, error) {
+) (
+	*Variable,
+	error,
+) {
 
-	out, err := op.Forward(inputs...)
+	out, err :=
+		op.Forward(
+			inputs...,
+		)
 
 	if err != nil {
+
 		return nil, err
+
 	}
 
+	node := out.Node()
+
+	node.Op = op
+
+	node.Parents =
+		make(
+			[]*Node,
+			len(inputs),
+		)
+
+	for i, v := range inputs {
+
+		node.Parents[i] =
+			v.Node()
+
+	}
+
+	e.graph.Add(node)
+
 	return out, nil
+
 }

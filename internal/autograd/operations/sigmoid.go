@@ -1,5 +1,5 @@
 package operations
 
-type MatMul struct {
+type Sigmoid struct {
 	Base
 }

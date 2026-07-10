@@ -27,13 +27,13 @@ func TestReLU(t *testing.T) {
 
 	y := r.Forward(v)
 
-	if y.Data.At(0) != 0 {
+	if y.Data().At(0) != 0 {
 
 		t.Fatal()
 
 	}
 
-	if y.Data.At(1) != 2 {
+	if y.Data().At(1) != 2 {
 
 		t.Fatal()
 

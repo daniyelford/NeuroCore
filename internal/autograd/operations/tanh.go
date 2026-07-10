@@ -1,5 +1,5 @@
 package operations
 
-type MatMul struct {
+type Tanh struct {
 	Base
 }

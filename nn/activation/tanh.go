@@ -16,18 +16,18 @@ func NewTanh() Tanh {
 }
 
 func (t Tanh) Forward(
-	input autograd.Variable,
-) autograd.Variable {
+	input *autograd.Variable,
+) *autograd.Variable {
 
 	out := tensor.New(
-		input.Data.Shape(),
+		input.Data().Shape(),
 	)
 
-	for i := 0; i < input.Data.Len(); i++ {
+	for i := 0; i < input.Data().Len(); i++ {
 
 		v := math.Tanh(
 			float64(
-				input.Data.At(i),
+				input.Data().At(i),
 			),
 		)
 
@@ -40,7 +40,7 @@ func (t Tanh) Forward(
 
 	return autograd.NewVariable(
 		out,
-		input.RequiresGrad,
+		input.RequiresGrad(),
 	)
 
 }

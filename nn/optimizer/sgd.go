@@ -25,18 +25,18 @@ func (s SGD) Step(
 
 	for _, p := range params {
 
-		if p.Value.Grad.Empty() {
+		if p.Value.Grad().Empty() {
 
 			continue
 
 		}
 
 		update :=
-			p.Value.Grad.Scale(
+			p.Value.Grad().Scale(
 				s.LR,
 			)
 
-		p.Value.Data.SubInplace(
+		p.Value.Data().SubInplace(
 			update,
 		)
 

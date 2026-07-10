@@ -14,10 +14,10 @@ func NewReLU() ReLU {
 }
 
 func (r ReLU) Forward(
-	input autograd.Variable,
-) autograd.Variable {
+	input *autograd.Variable,
+) *autograd.Variable {
 
-	data := input.Data
+	data := input.Data()
 
 	out := tensor.New(
 		data.Shape(),
@@ -47,7 +47,7 @@ func (r ReLU) Forward(
 
 	return autograd.NewVariable(
 		out,
-		input.RequiresGrad,
+		input.RequiresGrad(),
 	)
 
 }

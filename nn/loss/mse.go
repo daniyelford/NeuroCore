@@ -15,13 +15,13 @@ func NewMSE() MSE {
 }
 
 func (m MSE) Forward(
-	prediction autograd.Variable,
-	target autograd.Variable,
-) autograd.Variable {
+	prediction *autograd.Variable,
+	target *autograd.Variable,
+) *autograd.Variable {
 
 	diff :=
-		prediction.Data.Sub(
-			target.Data,
+		prediction.Data().Sub(
+			target.Data(),
 		)
 
 	sum := float32(0)

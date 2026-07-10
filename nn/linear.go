@@ -35,8 +35,8 @@ func NewLinear(
 				out,
 			),
 		)
-	wv := autograd.NewVariable(w, true)
-	bv := autograd.NewVariable(b, true)
+	wv := *autograd.NewVariable(w, true)
+	bv := *autograd.NewVariable(b, true)
 	return Linear{
 		Weight: NewParameter(&wv),
 		Bias:   NewParameter(&bv),
@@ -50,16 +50,16 @@ func (l Linear) Forward(
 ) autograd.Variable {
 
 	x, _ :=
-		input.Data.MatMul(
-			l.Weight.Value.Data,
+		input.Data().MatMul(
+			l.Weight.Value.Data(),
 		)
 
 	out :=
 		x.Add(
-			l.Bias.Value.Data,
+			l.Bias.Value.Data(),
 		)
 
-	return autograd.NewVariable(
+	return *autograd.NewVariable(
 		out,
 		true,
 	)
