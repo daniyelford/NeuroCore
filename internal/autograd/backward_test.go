@@ -3,7 +3,6 @@ package autograd
 import (
 	"testing"
 
-	"github.com/daniyelford/neurocore/internal/autograd/operations"
 	"github.com/daniyelford/neurocore/internal/core/shape"
 	"github.com/daniyelford/neurocore/internal/core/tensor"
 )
@@ -94,7 +93,7 @@ func TestSimpleBackwardEngin(t *testing.T) {
 
 	y, err :=
 		engine.Execute(
-			&operations.Add{},
+			&autograd.operations.Add{},
 			x,
 			x,
 		)
