@@ -11,9 +11,7 @@ func BenchmarkCompute(b *testing.B) {
 
 	sh := shape.New(3, 224, 224)
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = Compute(sh, layout.RowMajor)
 	}
 }
@@ -22,9 +20,7 @@ func BenchmarkOffset(b *testing.B) {
 
 	s := New(50176, 224, 1)
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = s.Offset(2, 10, 15)
 	}
 }
@@ -33,9 +29,7 @@ func BenchmarkClone(b *testing.B) {
 
 	s := New(50176, 224, 1)
 
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = s.Clone()
 	}
 }

@@ -18,17 +18,14 @@ func TestFromShape(t *testing.T) {
 	}
 
 }
-
 func TestOffset(t *testing.T) {
-
 	st := New(50176, 224, 1)
 
 	offset := st.Offset(2, 10, 15)
 
-	if offset != 102687 {
-		t.Fatal()
+	if offset != 102607 {
+		t.Fatalf("expected 102607, got %d", offset)
 	}
-
 }
 func TestComputeRowMajor(t *testing.T) {
 

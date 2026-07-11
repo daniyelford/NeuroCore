@@ -32,14 +32,13 @@ func NewLinear(
 	b :=
 		tensor.New(
 			shape.New(
+				1,
 				out,
 			),
 		)
-	wv := *autograd.NewVariable(w, true)
-	bv := *autograd.NewVariable(b, true)
 	return Linear{
-		Weight: NewParameter(&wv),
-		Bias:   NewParameter(&bv),
+		Weight: NewParameter(autograd.NewVariable(w, true)),
+		Bias:   NewParameter(autograd.NewVariable(b, true)),
 		In:     in,
 		Out:    out,
 	}

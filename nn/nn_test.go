@@ -18,16 +18,14 @@ func TestLinear(
 			2,
 		)
 
-	x :=
-		*autograd.NewVariable(
-			tensor.New(
-				shape.New(1, 3),
-			),
-			false,
-		)
+	x := *autograd.NewVariable(
+		tensor.New(
+			shape.New(1, 3),
+		),
+		false,
+	)
 
-	y :=
-		layer.Forward(x)
+	y := layer.Forward(x)
 
 	if y.Data().Shape().Values()[1] != 2 {
 
