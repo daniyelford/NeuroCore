@@ -1,8 +1,9 @@
-package autograd
+package nn
 
 import (
 	"testing"
 
+	"github.com/daniyelford/neurocore/internal/autograd"
 	"github.com/daniyelford/neurocore/internal/core/shape"
 	"github.com/daniyelford/neurocore/internal/core/tensor"
 	"github.com/daniyelford/neurocore/internal/operations"
@@ -19,12 +20,12 @@ func TestBackwardRoot(t *testing.T) {
 		0,
 	)
 
-	x := NewVariable(
+	x := autograd.NewVariable(
 		data,
 		true,
 	)
 
-	Backward(x)
+	autograd.Backward(x)
 
 	if x.Grad().Len() != 1 {
 
@@ -46,15 +47,15 @@ func TestSimpleBackwardEngin(t *testing.T) {
 		0,
 	)
 
-	x := NewVariable(
+	x := autograd.NewVariable(
 		data,
 		true,
 	)
-	engine := NewEngine()
+	engine := autograd.NewEngine()
 
 	y, err :=
 		engine.Execute(
-			operations.Add,
+			new(operations.Add),
 			x,
 			x,
 		)
@@ -64,7 +65,7 @@ func TestSimpleBackwardEngin(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	Backward(y)
+	autograd.Backward(y)
 
 	if x.Grad().At(0) != 2 {
 
