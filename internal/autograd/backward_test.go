@@ -54,24 +54,24 @@ func TestSimpleBackwardEngin(t *testing.T) {
 
 	y, err :=
 		engine.Execute(
-			&operations.Add{},
+			operations.Add,
 			x,
 			x,
 		)
-	println(y, err)
+	println(x, y, err)
 
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	// Backward(y)
+	Backward(y)
 
-	// if x.Grad().At(0) != 2 {
+	if x.Grad().At(0) != 2 {
 
-	// 	t.Fatal(
-	// 		x.Grad().At(0),
-	// 	)
+		t.Fatal(
+			x.Grad().At(0),
+		)
 
-	// }
+	}
 
 }
