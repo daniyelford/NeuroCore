@@ -47,17 +47,40 @@ func (t Tensor) Slice(
 	end int,
 ) (Tensor, bool) {
 
+	dims :=
+		t.shape.Values()
+
+	if len(dims) == 0 {
+
+		return Tensor{}, false
+
+	}
+
 	if start < 0 ||
-		end > t.NumElements() ||
+		end > dims[0] ||
 		start >= end {
 
 		return Tensor{}, false
 
 	}
 
+	newDims :=
+		make([]int, len(dims))
+
+	copy(
+		newDims,
+		dims,
+	)
+
+	newDims[0] =
+		end - start
+
+	offset :=
+		start * t.stride.At(0)
+
 	return t.View(
-		shape.New(end-start),
-		start,
+		shape.New(newDims...),
+		offset,
 	)
 
 }

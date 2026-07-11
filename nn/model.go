@@ -1,5 +1,7 @@
 package nn
 
+import "github.com/daniyelford/neurocore/internal/autograd"
+
 type Model struct {
 	Root Module
 
@@ -33,5 +35,14 @@ func (m *Model) Eval() {
 func (m *Model) Parameters() []Parameter {
 
 	return m.Root.Parameters()
+
+}
+func (m *Model) Forward(
+	input autograd.Variable,
+) autograd.Variable {
+
+	return m.Root.Forward(
+		input,
+	)
 
 }

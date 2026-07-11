@@ -26,7 +26,7 @@ func (t Tensor) Device() backend.DeviceType {
 
 func (t Tensor) Len() int {
 
-	return t.memory.Len()
+	return t.shape.NumElements()
 
 }
 func (t Tensor) NumElements() int {

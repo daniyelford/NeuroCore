@@ -62,3 +62,23 @@ func (t Tensor) memoryIndex(
 	return t.offset + linear
 
 }
+func (t Tensor) FlatAt(
+	index int,
+) float32 {
+
+	return t.memory.At(
+		t.offset + index,
+	)
+
+}
+func (t Tensor) FlatSet(
+	index int,
+	value float32,
+) {
+
+	t.memory.Set(
+		t.offset+index,
+		value,
+	)
+
+}
