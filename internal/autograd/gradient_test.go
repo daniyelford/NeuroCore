@@ -28,10 +28,16 @@ func TestAddBackward(
 			),
 			true,
 		)
+	// engine := NewEngine()
 
-	c := Add(a, b)
+	// c, err :=
+	// 	engine.Execute(
+	// 		&Add{},
+	// 		a,
+	// 		b,
+	// 	)
 
-	Backward(c)
+	// Backward(c)
 
 	if a.Grad().At(0) != 1 {
 

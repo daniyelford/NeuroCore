@@ -11,6 +11,8 @@ type Add struct {
 	Base
 }
 
+var _ autograd.Operation = (*Add)(nil)
+
 func (op *Add) Name() string {
 
 	return "Add"
