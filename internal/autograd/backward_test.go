@@ -3,9 +3,9 @@ package autograd
 import (
 	"testing"
 
-	"github.com/daniyelford/neurocore/internal/autograd/operations"
 	"github.com/daniyelford/neurocore/internal/core/shape"
 	"github.com/daniyelford/neurocore/internal/core/tensor"
+	"github.com/daniyelford/neurocore/internal/operations"
 )
 
 func TestBackwardRoot(t *testing.T) {
