@@ -57,13 +57,11 @@ func (l DataLoader) Batches() <-chan Batch {
 					append(ys, y)
 
 			}
-
 			bx, _ :=
 				tensor.Stack(xs)
 
 			by, _ :=
 				tensor.Stack(ys)
-
 			ch <- Batch{
 
 				X: bx,

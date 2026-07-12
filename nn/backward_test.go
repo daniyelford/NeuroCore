@@ -59,8 +59,6 @@ func TestSimpleBackwardEngin(t *testing.T) {
 			x,
 			x,
 		)
-	println(x, y, err)
-
 	if err != nil {
 		t.Fatal(err)
 	}

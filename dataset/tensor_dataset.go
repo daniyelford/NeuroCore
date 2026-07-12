@@ -44,7 +44,7 @@ func (d TensorDataset) Get(
 			index+1,
 		)
 
-	return x, y
+	return x.Squeeze(), y.Squeeze()
 
 }
 func (d TensorDataset) Len() int {

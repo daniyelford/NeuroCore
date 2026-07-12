@@ -150,3 +150,13 @@ func TestReshape(t *testing.T) {
 	}
 
 }
+func TestSqueeze(t *testing.T) {
+
+	x := New(shape.New(1, 3, 1))
+
+	y := x.Squeeze()
+
+	if !y.Shape().Equal(shape.New(3)) {
+		t.Fatal("wrong shape")
+	}
+}
