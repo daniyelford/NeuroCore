@@ -16,3 +16,8 @@ func NewParameter(
 	}
 
 }
+func (p Parameter) NumElements() int {
+
+	return p.Value.Data().Shape().NumElements()
+
+}

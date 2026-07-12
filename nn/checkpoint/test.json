@@ -1,0 +1,22 @@
+{
+  "parameters": {
+    "bias": {
+      "shape": [
+        1
+      ],
+      "data": [
+        0
+      ]
+    },
+    "weight": {
+      "shape": [
+        2,
+        1
+      ],
+      "data": [
+        0,
+        0
+      ]
+    }
+  }
+}

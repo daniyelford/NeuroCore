@@ -7,6 +7,7 @@ import (
 )
 
 type Linear struct {
+	BaseModule
 	Weight Parameter
 
 	Bias Parameter
@@ -16,6 +17,21 @@ type Linear struct {
 	Out int
 }
 
+func (l *Linear) Name() string {
+
+	return "Linear"
+
+}
+func (l *Linear) StateDict() map[string]*autograd.Variable {
+
+	return map[string]*autograd.Variable{
+
+		"weight": l.Weight.Value,
+
+		"bias": l.Bias.Value,
+	}
+
+}
 func NewLinear(
 	in int,
 	out int,
@@ -34,6 +50,7 @@ func NewLinear(
 		),
 	)
 	return &Linear{
+		BaseModule: NewBaseModule(),
 		Weight: NewParameter(
 			autograd.NewVariable(
 				w,

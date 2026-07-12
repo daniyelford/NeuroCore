@@ -20,17 +20,19 @@ func NewModel(
 	}
 
 }
+func (m *Model) Name() string {
 
+	return "Model"
+
+}
 func (m *Model) Train() {
-
 	m.training = true
-
+	m.Root.Train()
 }
 
 func (m *Model) Eval() {
-
 	m.training = false
-
+	m.Root.Eval()
 }
 func (m *Model) Parameters() []Parameter {
 
@@ -44,5 +46,10 @@ func (m *Model) Forward(
 	return m.Root.Forward(
 		input,
 	)
+
+}
+func (m *Model) StateDict() map[string]*autograd.Variable {
+
+	return m.Root.StateDict()
 
 }

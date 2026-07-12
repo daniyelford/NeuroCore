@@ -34,3 +34,34 @@ func TestLinear(
 	}
 
 }
+
+func TestStateDict(t *testing.T) {
+
+	model :=
+		NewModel(
+			NewLinear(3, 2),
+		)
+
+	state :=
+		model.StateDict()
+
+	if len(state) != 2 {
+
+		t.Fatal(
+			"wrong state size",
+		)
+
+	}
+
+	_, ok :=
+		state["weight"]
+
+	if !ok {
+
+		t.Fatal(
+			"weight missing",
+		)
+
+	}
+
+}

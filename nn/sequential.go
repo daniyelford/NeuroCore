@@ -1,11 +1,48 @@
 package nn
 
-import "github.com/daniyelford/neurocore/internal/autograd"
+import (
+	"fmt"
+
+	"github.com/daniyelford/neurocore/internal/autograd"
+)
 
 type Sequential struct {
 	Layers []Module
 }
 
+func (s Sequential) Name() string {
+
+	return "Sequential"
+
+}
+func (s Sequential) Children() []Module {
+
+	return s.Layers
+
+}
+func (s Sequential) StateDict() StateDict {
+
+	out := StateDict{}
+
+	for i, layer := range s.Layers {
+
+		prefix :=
+			fmt.Sprintf(
+				"%d.",
+				i,
+			)
+
+		for name, value := range layer.StateDict() {
+
+			out[prefix+name] = value
+
+		}
+
+	}
+
+	return out
+
+}
 func NewSequential(
 	layers ...Module,
 ) Sequential {
