@@ -25,7 +25,7 @@ func (t Tensor) Reshape(
 		),
 
 		memory: t.memory,
-
+		offset: t.offset,
 		device: t.device,
 
 		layout: t.layout,

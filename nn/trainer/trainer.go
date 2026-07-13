@@ -7,8 +7,7 @@ import (
 )
 
 type Trainer struct {
-	Model *nn.Model
-
+	Model     *nn.Model
 	Optimizer optimizer.Optimizer
 }
 

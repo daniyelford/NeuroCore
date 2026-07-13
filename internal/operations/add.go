@@ -11,8 +11,6 @@ type Add struct {
 	Base
 }
 
-var _ autograd.Operation = (*Add)(nil)
-
 func (op *Add) Name() string {
 
 	return "Add"
@@ -43,14 +41,17 @@ func (op *Add) Forward(
 		b,
 	)
 
-	out :=
-		autograd.NewVariable(
-			a.Data().Add(
-				b.Data(),
-			),
-			a.RequiresGrad() ||
-				b.RequiresGrad(),
-		)
+	out := autograd.NewVariable(
+		a.Data().Add(b.Data()),
+		a.RequiresGrad() || b.RequiresGrad(),
+	)
+
+	out.Node().Parents = []*autograd.Node{
+		a.Node(),
+		b.Node(),
+	}
+
+	out.Node().Op = op
 
 	op.SetOutput(out)
 

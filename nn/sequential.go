@@ -15,33 +15,46 @@ func (s Sequential) Name() string {
 	return "Sequential"
 
 }
-func (s Sequential) Children() []Module {
 
-	return s.Layers
+// func (s Sequential) StateDict() map[string]*autograd.Variable {
 
-}
-func (s Sequential) StateDict() StateDict {
+// 	out := map[string]*autograd.Variable{}
 
-	out := StateDict{}
+// 	for i, layer := range s.Layers {
 
-	for i, layer := range s.Layers {
+// 		for k, v := range layer.StateDict() {
 
-		prefix :=
-			fmt.Sprintf(
-				"%d.",
-				i,
-			)
+// 			out[fmt.Sprintf("%d.%s", i, k)] = v
+
+// 		}
+
+// 	}
+
+//		return out
+//	}
+func (s *Sequential) StateDict() map[string]*autograd.Variable {
+
+	result :=
+		map[string]*autograd.Variable{}
+
+	for index, layer := range s.Layers {
 
 		for name, value := range layer.StateDict() {
 
-			out[prefix+name] = value
+			key :=
+				fmt.Sprintf(
+					"%d.%s",
+					index,
+					name,
+				)
+
+			result[key] = value
 
 		}
 
 	}
 
-	return out
-
+	return result
 }
 func NewSequential(
 	layers ...Module,
@@ -83,5 +96,10 @@ func (s Sequential) Parameters() []Parameter {
 	}
 
 	return params
+
+}
+func (s *Sequential) Children() []Module {
+
+	return s.Layers
 
 }

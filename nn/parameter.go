@@ -4,6 +4,7 @@ import "github.com/daniyelford/neurocore/internal/autograd"
 
 type Parameter struct {
 	Value *autograd.Variable
+	Name  string
 }
 
 func NewParameter(

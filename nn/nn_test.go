@@ -65,3 +65,84 @@ func TestStateDict(t *testing.T) {
 	}
 
 }
+func TestLinearInitialization(t *testing.T) {
+
+	l := NewLinear(4, 3)
+
+	allZero := true
+
+	for i := 0; i < l.Weight.Value.Data().Len(); i++ {
+
+		if l.Weight.Value.Data().FlatAt(i) != 0 {
+			allZero = false
+			break
+		}
+	}
+
+	if allZero {
+		t.Fatal("linear weight is not initialized")
+	}
+
+}
+
+// func TestSaveLoadJSON(
+// 	t *testing.T,
+// ) {
+
+// 	model :=
+// 		NewModel(
+// 			NewLinear(
+// 				2,
+// 				1,
+// 			),
+// 		)
+
+// 	err :=
+// 		SaveJSON(
+// 			"model.json",
+// 		)
+
+// 	if err != nil {
+
+// 		t.Fatal(err)
+
+// 	}
+
+// 	model2 :=
+// 		NewModel(
+// 			NewLinear(
+// 				2,
+// 				1,
+// 			),
+// 		)
+
+// 	err =
+// 		model2.LoadJSON(
+// 			"model.json",
+// 		)
+
+// 	if err != nil {
+
+// 		t.Fatal(err)
+
+// 	}
+
+// 	a :=
+// 		model.StateDict()
+
+// 	b :=
+// 		model2.StateDict()
+
+// 	for name, v := range a {
+
+// 		if !v.Data().Equal(
+// 			b[name].Data(),
+// 		) {
+
+// 			t.Fatal(name)
+
+// 		}
+
+// 	}
+
+// }
