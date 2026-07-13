@@ -29,7 +29,11 @@ func (op *Neg) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error)
 		x.Data().Neg(),
 		x.RequiresGrad(),
 	)
+	out.Node().Parents = []*autograd.Node{
+		x.Node(),
+	}
 
+	out.Node().Op = op
 	op.SetOutput(out)
 
 	return out, nil

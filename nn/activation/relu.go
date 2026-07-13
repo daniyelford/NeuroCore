@@ -2,52 +2,55 @@ package activation
 
 import (
 	"github.com/daniyelford/neurocore/internal/autograd"
-	"github.com/daniyelford/neurocore/internal/core/tensor"
+	"github.com/daniyelford/neurocore/internal/operations"
+	"github.com/daniyelford/neurocore/nn"
 )
 
-type ReLU struct{}
+type ReLU struct {
+	nn.BaseModule
+}
 
-func NewReLU() ReLU {
+func NewReLU() *ReLU {
 
-	return ReLU{}
+	return &ReLU{
+		BaseModule: nn.NewBaseModule(),
+	}
 
 }
 
-func (r ReLU) Forward(
-	input *autograd.Variable,
-) *autograd.Variable {
+func (r *ReLU) Name() string {
 
-	data := input.Data()
+	return "ReLU"
 
-	out := tensor.New(
-		data.Shape(),
-	)
+}
 
-	for i := 0; i < data.Len(); i++ {
+func (r *ReLU) Forward(
+	input autograd.Variable,
+) autograd.Variable {
 
-		v := data.At(i)
+	op := &operations.ReLU{}
 
-		if v > 0 {
+	out, err :=
+		op.Forward(
+			&input,
+		)
 
-			out.Set(
-				v,
-				i,
-			)
-
-		} else {
-
-			out.Set(
-				0,
-				i,
-			)
-
-		}
-
+	if err != nil {
+		panic(err)
 	}
 
-	return autograd.NewVariable(
-		out,
-		input.RequiresGrad(),
-	)
+	return *out
+
+}
+
+func (r *ReLU) Parameters() []nn.Parameter {
+
+	return nil
+
+}
+
+func (r *ReLU) StateDict() map[string]*autograd.Variable {
+
+	return map[string]*autograd.Variable{}
 
 }

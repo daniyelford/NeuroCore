@@ -40,7 +40,12 @@ func (op *MatMul) Forward(
 		out,
 		a.RequiresGrad() || b.RequiresGrad(),
 	)
+	v.Node().Parents = []*autograd.Node{
+		a.Node(),
+		b.Node(),
+	}
 
+	v.Node().Op = op
 	op.SetOutput(v)
 
 	return v, nil

@@ -69,6 +69,7 @@ func NewLinear(
 		Out: out,
 	}
 }
+
 func (l *Linear) Forward(
 	input autograd.Variable,
 ) autograd.Variable {
@@ -92,6 +93,36 @@ func (l *Linear) Forward(
 	)
 
 }
+
+// func (l *Linear) Forward(
+// 	input autograd.Variable,
+// ) autograd.Variable {
+// 	matmul := &operations.MatMul{}
+
+// 	x, err :=
+// 		matmul.Forward(
+// 			&input,
+// 			l.Weight.Value,
+// 		)
+
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	add := &operations.Add{}
+
+// 	out, err :=
+// 		add.Forward(
+// 			x,
+// 			l.Bias.Value,
+// 		)
+
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+//		return *out
+//	}
 func (l *Linear) Parameters() []Parameter {
 
 	return []Parameter{

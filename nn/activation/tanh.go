@@ -1,46 +1,56 @@
 package activation
 
 import (
-	"math"
-
 	"github.com/daniyelford/neurocore/internal/autograd"
-	"github.com/daniyelford/neurocore/internal/core/tensor"
+	"github.com/daniyelford/neurocore/internal/operations"
+	"github.com/daniyelford/neurocore/nn"
 )
 
-type Tanh struct{}
+type Tanh struct {
+	nn.BaseModule
+}
 
-func NewTanh() Tanh {
+func NewTanh() *Tanh {
 
-	return Tanh{}
+	return &Tanh{
+		BaseModule: nn.NewBaseModule(),
+	}
 
 }
 
-func (t Tanh) Forward(
-	input *autograd.Variable,
-) *autograd.Variable {
+func (t *Tanh) Name() string {
 
-	out := tensor.New(
-		input.Data().Shape(),
-	)
+	return "Tanh"
 
-	for i := 0; i < input.Data().Len(); i++ {
+}
 
-		v := math.Tanh(
-			float64(
-				input.Data().At(i),
-			),
+func (t *Tanh) Forward(
+	input autograd.Variable,
+) autograd.Variable {
+
+	op := &operations.Tanh{}
+
+	out, err :=
+		op.Forward(
+			&input,
 		)
 
-		out.Set(
-			float32(v),
-			i,
-		)
-
+	if err != nil {
+		panic(err)
 	}
 
-	return autograd.NewVariable(
-		out,
-		input.RequiresGrad(),
-	)
+	return *out
+
+}
+
+func (t *Tanh) Parameters() []nn.Parameter {
+
+	return nil
+
+}
+
+func (t *Tanh) StateDict() map[string]*autograd.Variable {
+
+	return map[string]*autograd.Variable{}
 
 }

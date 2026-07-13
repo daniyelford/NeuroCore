@@ -33,7 +33,11 @@ func (op *Tanh) Forward(
 		out,
 		x.RequiresGrad(),
 	)
+	v.Node().Parents = []*autograd.Node{
+		x.Node(),
+	}
 
+	v.Node().Op = op
 	op.SetOutput(v)
 
 	return v, nil

@@ -1,47 +1,56 @@
 package activation
 
 import (
-	"math"
-
 	"github.com/daniyelford/neurocore/internal/autograd"
-	"github.com/daniyelford/neurocore/internal/core/tensor"
+	"github.com/daniyelford/neurocore/internal/operations"
+	"github.com/daniyelford/neurocore/nn"
 )
 
-type Sigmoid struct{}
+type Sigmoid struct {
+	nn.BaseModule
+}
 
-func NewSigmoid() Sigmoid {
+func NewSigmoid() *Sigmoid {
 
-	return Sigmoid{}
+	return &Sigmoid{
+		BaseModule: nn.NewBaseModule(),
+	}
 
 }
 
-func (s Sigmoid) Forward(
-	input *autograd.Variable,
-) *autograd.Variable {
+func (s *Sigmoid) Name() string {
 
-	out := tensor.New(
-		input.Data().Shape(),
-	)
+	return "Sigmoid"
 
-	for i := 0; i < input.Data().Len(); i++ {
+}
 
-		x := input.Data().At(i)
+func (s *Sigmoid) Forward(
+	input autograd.Variable,
+) autograd.Variable {
 
-		y := float32(
-			1.0 /
-				(1.0 + math.Exp(float64(-x))),
+	op := &operations.Sigmoid{}
+
+	out, err :=
+		op.Forward(
+			&input,
 		)
 
-		out.Set(
-			y,
-			i,
-		)
-
+	if err != nil {
+		panic(err)
 	}
 
-	return autograd.NewVariable(
-		out,
-		input.RequiresGrad(),
-	)
+	return *out
+
+}
+
+func (s *Sigmoid) Parameters() []nn.Parameter {
+
+	return nil
+
+}
+
+func (s *Sigmoid) StateDict() map[string]*autograd.Variable {
+
+	return map[string]*autograd.Variable{}
 
 }

@@ -30,7 +30,12 @@ func (op *Mul) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error)
 		a.Data().Mul(b.Data()),
 		a.RequiresGrad() || b.RequiresGrad(),
 	)
+	out.Node().Parents = []*autograd.Node{
+		a.Node(),
+		b.Node(),
+	}
 
+	out.Node().Op = op
 	op.SetOutput(out)
 
 	return out, nil
