@@ -1,11 +1,10 @@
 package nn
 
 import (
-	"math"
-
 	"github.com/daniyelford/neurocore/internal/autograd"
 	"github.com/daniyelford/neurocore/internal/core/shape"
 	"github.com/daniyelford/neurocore/internal/core/tensor"
+	"github.com/daniyelford/neurocore/internal/operations"
 )
 
 type BatchNorm struct {
@@ -106,45 +105,71 @@ func (b *BatchNorm) StateDict() map[string]*autograd.Variable {
 	}
 
 }
-
 func (b *BatchNorm) Forward(
 	input autograd.Variable,
 ) autograd.Variable {
 
-	x := input.Data()
-
-	out := tensor.New(
-		x.Shape(),
-	)
-
-	for i := 0; i < x.Len(); i++ {
-
-		v := x.FlatAt(i)
-
-		mean := b.RunningMean.FlatAt(i % b.NumFeatures)
-
-		variance := b.RunningVar.FlatAt(i % b.NumFeatures)
-
-		gamma := b.Weight.Value.Data().FlatAt(i % b.NumFeatures)
-
-		beta := b.Bias.Value.Data().FlatAt(i % b.NumFeatures)
-
-		y :=
-			((v-mean)/
-				float32(math.Sqrt(float64(variance+b.Eps))))*
-				gamma +
-				beta
-
-		out.FlatSet(
-			i,
-			y,
+	op :=
+		operations.NewBatchNorm(
+			b.NumFeatures,
+			b.Eps,
 		)
+
+	out, err :=
+		op.Forward(
+			&input,
+			b.Weight.Value,
+			b.Bias.Value,
+		)
+
+	if err != nil {
+
+		panic(err)
 
 	}
 
-	return *autograd.NewVariable(
-		out,
-		input.RequiresGrad(),
-	)
+	return *out
 
 }
+
+// func (b *BatchNorm) Forward(
+// 	input autograd.Variable,
+// ) autograd.Variable {
+
+// 	x := input.Data()
+
+// 	out := tensor.New(
+// 		x.Shape(),
+// 	)
+
+// 	for i := 0; i < x.Len(); i++ {
+
+// 		v := x.FlatAt(i)
+
+// 		mean := b.RunningMean.FlatAt(i % b.NumFeatures)
+
+// 		variance := b.RunningVar.FlatAt(i % b.NumFeatures)
+
+// 		gamma := b.Weight.Value.Data().FlatAt(i % b.NumFeatures)
+
+// 		beta := b.Bias.Value.Data().FlatAt(i % b.NumFeatures)
+
+// 		y :=
+// 			((v-mean)/
+// 				float32(math.Sqrt(float64(variance+b.Eps))))*
+// 				gamma +
+// 				beta
+
+// 		out.FlatSet(
+// 			i,
+// 			y,
+// 		)
+
+// 	}
+
+// 	return *autograd.NewVariable(
+// 		out,
+// 		input.RequiresGrad(),
+// 	)
+
+// }

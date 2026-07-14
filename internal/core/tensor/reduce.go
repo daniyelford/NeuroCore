@@ -1,6 +1,10 @@
 package tensor
 
-import "github.com/daniyelford/neurocore/internal/core/shape"
+import (
+	"math"
+
+	"github.com/daniyelford/neurocore/internal/core/shape"
+)
 
 func (t Tensor) SumTensor() Tensor {
 
@@ -99,5 +103,25 @@ func (t Tensor) ReduceMean() Tensor {
 	)
 
 	return out
+
+}
+func (t Tensor) ReduceMax() float32 {
+
+	max :=
+		float32(
+			math.Inf(-1),
+		)
+
+	for i := 0; i < t.NumElements(); i++ {
+
+		if v := t.FlatAt(i); v > max {
+
+			max = v
+
+		}
+
+	}
+
+	return max
 
 }
