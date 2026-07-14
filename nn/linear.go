@@ -5,6 +5,7 @@ import (
 	"github.com/daniyelford/neurocore/internal/core/shape"
 	"github.com/daniyelford/neurocore/internal/core/tensor"
 	"github.com/daniyelford/neurocore/internal/operations"
+	initial "github.com/daniyelford/neurocore/nn/init"
 )
 
 type Linear struct {
@@ -37,21 +38,24 @@ func NewLinear(
 	in int,
 	out int,
 ) *Linear {
-
 	w := tensor.New(
 		shape.New(
 			in,
 			out,
 		),
 	)
-
+	initial.Xavier{}.Init(
+		&w,
+	)
 	b := tensor.New(
 		shape.New(
 			out,
 		),
 	)
 	return &Linear{
+
 		BaseModule: NewBaseModule(),
+
 		Weight: NewParameter(
 			autograd.NewVariable(
 				w,
@@ -66,11 +70,12 @@ func NewLinear(
 			),
 		),
 
-		In:  in,
+		In: in,
+
 		Out: out,
 	}
-}
 
+}
 func (l *Linear) Forward(
 	input autograd.Variable,
 ) autograd.Variable {
