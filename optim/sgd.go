@@ -36,7 +36,11 @@ func (s *SGD) Step() {
 
 		grad :=
 			p.Value.Grad()
+		if grad.NumElements() != data.NumElements() {
 
+			panic("parameter gradient not initialized")
+
+		}
 		for i := 0; i < data.NumElements(); i++ {
 
 			value :=

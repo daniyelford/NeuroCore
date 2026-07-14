@@ -4,6 +4,7 @@ import (
 	"github.com/daniyelford/neurocore/internal/autograd"
 	"github.com/daniyelford/neurocore/internal/core/shape"
 	"github.com/daniyelford/neurocore/internal/core/tensor"
+	"github.com/daniyelford/neurocore/internal/operations"
 )
 
 type Linear struct {
@@ -73,56 +74,41 @@ func NewLinear(
 func (l *Linear) Forward(
 	input autograd.Variable,
 ) autograd.Variable {
-	x, ok :=
-		input.Data().MatMul(
-			l.Weight.Value.Data(),
+
+	matmul :=
+		&operations.MatMul{}
+
+	x, err :=
+		matmul.Forward(
+			&input,
+			l.Weight.Value,
 		)
-	if !ok {
-		panic("matmul failed")
+
+	if err != nil {
+
+		panic(err)
+
 	}
-	out, ok :=
-		x.AddBroadcast(
-			l.Bias.Value.Data(),
+
+	add :=
+		&operations.Add{}
+
+	out, err :=
+		add.Forward(
+			x,
+			l.Bias.Value,
 		)
-	if !ok {
-		panic("linear bias broadcast failed")
+
+	if err != nil {
+
+		panic(err)
+
 	}
-	return *autograd.NewVariable(
-		out,
-		true,
-	)
+
+	return *out
 
 }
 
-// func (l *Linear) Forward(
-// 	input autograd.Variable,
-// ) autograd.Variable {
-// 	matmul := &operations.MatMul{}
-
-// 	x, err :=
-// 		matmul.Forward(
-// 			&input,
-// 			l.Weight.Value,
-// 		)
-
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	add := &operations.Add{}
-
-// 	out, err :=
-// 		add.Forward(
-// 			x,
-// 			l.Bias.Value,
-// 		)
-
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-//		return *out
-//	}
 func (l *Linear) Parameters() []Parameter {
 
 	return []Parameter{

@@ -67,47 +67,305 @@ func (t Tensor) broadcastAt(
 	target shape.Shape,
 ) float32 {
 
-	if t.Len() == 1 {
+	targetIndices :=
+		linearToIndices(
+			index,
+			target,
+		)
 
-		return t.memory.At(0)
+	srcIndices :=
+		broadcastIndices(
+			targetIndices,
+			t.Shape(),
+		)
 
-	}
-
-	return t.memory.At(index)
+	return t.At(
+		srcIndices...,
+	)
 
 }
-
 func (t Tensor) Broadcast(
 	target shape.Shape,
 ) (Tensor, bool) {
 
-	if t.Shape().Equal(target) {
+	_, ok :=
+		broadcastShape(
+			t.Shape(),
+			target,
+		)
 
-		return t, true
-
-	}
-
-	if t.Len() != 1 {
+	if !ok {
 
 		return Tensor{}, false
 
 	}
 
-	out := New(target)
-
-	value := t.memory.At(
-		t.offset,
-	)
+	out :=
+		New(
+			target,
+		)
 
 	for i := 0; i < out.NumElements(); i++ {
 
-		out.memory.Set(
-			out.memoryIndex(i),
-			value,
+		out.FlatSet(
+
+			i,
+
+			t.broadcastAt(
+				i,
+				target,
+			),
 		)
 
 	}
 
-	return out, true
+	return out,
+		true
+
+}
+func (t Tensor) AddBroadcast(
+	other Tensor,
+) (
+	Tensor,
+	bool,
+) {
+
+	return broadcastBinary(
+
+		t,
+
+		other,
+
+		func(
+			a,
+			b float32,
+		) float32 {
+
+			return a + b
+
+		},
+	)
+
+}
+func linearToIndices(
+	index int,
+	sh shape.Shape,
+) []int {
+
+	dims := sh.Values()
+
+	indices :=
+		make(
+			[]int,
+			len(dims),
+		)
+
+	for i := len(dims) - 1; i >= 0; i-- {
+
+		indices[i] =
+			index % dims[i]
+
+		index /= dims[i]
+
+	}
+
+	return indices
+
+}
+func indicesToLinear(
+	indices []int,
+	sh shape.Shape,
+) int {
+
+	dims := sh.Values()
+
+	stride := 1
+
+	index := 0
+
+	for i := len(dims) - 1; i >= 0; i-- {
+
+		index +=
+			indices[i] * stride
+
+		stride *= dims[i]
+
+	}
+
+	return index
+
+}
+func broadcastIndices(
+	targetIndices []int,
+	src shape.Shape,
+) []int {
+
+	srcDims := src.Values()
+
+	out :=
+		make(
+			[]int,
+			len(srcDims),
+		)
+
+	offset :=
+		len(targetIndices) -
+			len(srcDims)
+
+	for i := range srcDims {
+
+		j := i + offset
+
+		if j < 0 {
+
+			out[i] = 0
+
+			continue
+
+		}
+
+		if srcDims[i] == 1 {
+
+			out[i] = 0
+
+		} else {
+
+			out[i] = targetIndices[j]
+
+		}
+
+	}
+
+	return out
+
+}
+func (t Tensor) SubBroadcast(
+	other Tensor,
+) (
+	Tensor,
+	bool,
+) {
+
+	return broadcastBinary(
+
+		t,
+
+		other,
+
+		func(
+			a,
+			b float32,
+		) float32 {
+
+			return a - b
+
+		},
+	)
+
+}
+func (t Tensor) MulBroadcast(
+	other Tensor,
+) (
+	Tensor,
+	bool,
+) {
+
+	return broadcastBinary(
+
+		t,
+
+		other,
+
+		func(
+			a,
+			b float32,
+		) float32 {
+
+			return a * b
+
+		},
+	)
+
+}
+func (t Tensor) DivBroadcast(
+	other Tensor,
+) (
+	Tensor,
+	bool,
+) {
+
+	return broadcastBinary(
+
+		t,
+
+		other,
+
+		func(
+			a,
+			b float32,
+		) float32 {
+
+			return a / b
+
+		},
+	)
+
+}
+func broadcastBinary(
+	a Tensor,
+	b Tensor,
+	op func(
+		float32,
+		float32,
+	) float32,
+) (
+	Tensor,
+	bool,
+) {
+
+	outShape, ok :=
+		broadcastShape(
+			a.Shape(),
+			b.Shape(),
+		)
+
+	if !ok {
+
+		return Tensor{},
+			false
+
+	}
+
+	out :=
+		New(
+			outShape,
+		)
+
+	for i := 0; i < out.NumElements(); i++ {
+
+		av :=
+			a.broadcastAt(
+				i,
+				outShape,
+			)
+
+		bv :=
+			b.broadcastAt(
+				i,
+				outShape,
+			)
+
+		out.FlatSet(
+			i,
+			op(
+				av,
+				bv,
+			),
+		)
+
+	}
+
+	return out,
+		true
 
 }
