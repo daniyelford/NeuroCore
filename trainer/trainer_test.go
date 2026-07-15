@@ -7,7 +7,6 @@ import (
 	"github.com/daniyelford/neurocore/internal/core/shape"
 	"github.com/daniyelford/neurocore/internal/core/tensor"
 	"github.com/daniyelford/neurocore/nn"
-	"github.com/daniyelford/neurocore/nn/loss"
 	"github.com/daniyelford/neurocore/nn/optimizer"
 )
 
@@ -103,11 +102,10 @@ func TestTrainerLinear(
 			model,
 			sgd,
 		)
-	mse := loss.MSE{}
 	tr.Train(
 		loader,
 		10,
-		mse.Forward,
+		nn.MSELoss{}.,
 	)
 
 }

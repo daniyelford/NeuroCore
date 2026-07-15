@@ -6,7 +6,7 @@ import (
 	"github.com/daniyelford/neurocore/internal/autograd"
 	"github.com/daniyelford/neurocore/internal/core/shape"
 	"github.com/daniyelford/neurocore/internal/core/tensor"
-	"github.com/daniyelford/neurocore/nn/loss"
+	"github.com/daniyelford/neurocore/nn"
 )
 
 func TestMSE(t *testing.T) {
@@ -25,7 +25,7 @@ func TestMSE(t *testing.T) {
 		},
 	)
 
-	l := loss.NewMSE()
+	l := nn.NewMSE()
 
 	out := l.Forward(
 		autograd.NewVariable(p, false),
