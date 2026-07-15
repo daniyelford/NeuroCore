@@ -50,3 +50,20 @@ func TestRegistry(t *testing.T) {
 	}
 
 }
+func TestContext(t *testing.T) {
+
+	ctx := DefaultContext()
+
+	if ctx.Name() != "cpu" {
+
+		t.Fatal()
+
+	}
+
+	if ctx.Type() != CPU {
+
+		t.Fatal()
+
+	}
+
+}

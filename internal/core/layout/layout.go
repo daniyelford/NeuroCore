@@ -10,3 +10,7 @@ const (
 
 	ColumnMajor
 )
+
+func Default() Order {
+	return RowMajor
+}

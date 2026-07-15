@@ -36,6 +36,13 @@ func (s *SGD) Step() {
 
 		grad :=
 			p.Value.Grad()
+		if grad.Empty() {
+
+			panic(
+				"parameter gradient empty from optim sgd step",
+			)
+
+		}
 		if grad.NumElements() != data.NumElements() {
 
 			panic("parameter gradient not initialized")
@@ -71,7 +78,11 @@ func (s *SGD) ZeroGrad() {
 
 		grad :=
 			p.Value.Grad()
+		if grad.Empty() {
 
+			continue
+
+		}
 		for i := 0; i < grad.NumElements(); i++ {
 
 			grad.FlatSet(

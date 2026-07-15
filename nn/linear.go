@@ -90,9 +90,7 @@ func (l *Linear) Forward(
 		)
 
 	if err != nil {
-
 		panic(err)
-
 	}
 
 	add :=
@@ -105,13 +103,10 @@ func (l *Linear) Forward(
 		)
 
 	if err != nil {
-
 		panic(err)
-
 	}
 
 	return *out
-
 }
 
 func (l *Linear) Parameters() []Parameter {

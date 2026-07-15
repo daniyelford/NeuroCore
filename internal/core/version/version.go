@@ -1,8 +1,10 @@
 package version
 
+import "fmt"
+
 const (
-	Name    = "NeuroCore"
-	
+	Name = "NeuroCore"
+
 	Version = "0.1.0-alpha"
 
 	Major = 0
@@ -10,5 +12,15 @@ const (
 	Minor = 1
 
 	Patch = 0
-
 )
+
+func String() string {
+
+	return fmt.Sprintf(
+		"%d.%d.%d",
+		Major,
+		Minor,
+		Patch,
+	)
+
+}

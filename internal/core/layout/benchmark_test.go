@@ -4,7 +4,7 @@ import "testing"
 
 func BenchmarkString(b *testing.B) {
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = RowMajor.String()
 	}
 
@@ -12,7 +12,7 @@ func BenchmarkString(b *testing.B) {
 
 func BenchmarkParse(b *testing.B) {
 
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 
 		_, _ = Parse("row-major")
 
