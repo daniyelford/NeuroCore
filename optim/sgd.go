@@ -1,6 +1,8 @@
 package optim
 
-import "github.com/daniyelford/neurocore/nn"
+import (
+	"github.com/daniyelford/neurocore/nn"
+)
 
 type SGD struct {
 	Parameters []nn.Parameter
@@ -30,10 +32,8 @@ func (s *SGD) Step() {
 			continue
 
 		}
-
 		data :=
 			p.Value.Data()
-
 		grad :=
 			p.Value.Grad()
 		if grad.Empty() {

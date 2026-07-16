@@ -1372,3 +1372,80 @@ func broadcastBinary(a Tensor, b Tensor, op func(float32, float32) float32) (Ten
 	}
 	return out, true
 }
+func (t Tensor) ReduceSumAxis(
+	axis int,
+) Tensor {
+
+	dims := t.Shape().Values()
+
+	if len(dims) != 2 {
+
+		panic("ReduceSumAxis currently supports only 2D tensors")
+
+	}
+
+	rows := dims[0]
+
+	cols := dims[1]
+
+	switch axis {
+
+	case 0:
+
+		out := New(
+
+			shape.New(cols),
+		)
+
+		for c := 0; c < cols; c++ {
+
+			sum := float32(0)
+
+			for r := 0; r < rows; r++ {
+
+				sum += t.At(
+					r,
+					c,
+				)
+
+			}
+
+			out.Set(
+				sum,
+				c,
+			)
+
+		}
+
+		return out
+
+	case 1:
+
+		out := New(
+
+			shape.New(rows),
+		)
+
+		for r := 0; r < rows; r++ {
+
+			sum := float32(0)
+
+			for c := 0; c < cols; c++ {
+
+				sum += t.At(
+					r,
+					c,
+				)
+
+			}
+
+			out.Set(
+				sum,
+				r,
+			)
+		}
+		return out
+	default:
+		panic("invalid axis")
+	}
+}

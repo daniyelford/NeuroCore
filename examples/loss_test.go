@@ -25,11 +25,11 @@ func TestMSE(t *testing.T) {
 		},
 	)
 
-	l := nn.NewMSE()
+	l := nn.NewMSELoss()
 
 	out := l.Forward(
-		autograd.NewVariable(p, false),
-		autograd.NewVariable(tg, false),
+		*autograd.NewVariable(p, false),
+		*autograd.NewVariable(tg, false),
 	)
 
 	if out.Data().At(0) != 2.5 {

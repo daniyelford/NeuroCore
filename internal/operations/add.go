@@ -60,16 +60,28 @@ func (op *Add) Forward(
 }
 func (op *Add) Backward(
 	grad tensor.Tensor,
-) (
-	[]tensor.Tensor,
-	error,
-) {
+) ([]tensor.Tensor, error) {
+
+	a := op.Input(0).Data()
+	b := op.Input(1).Data()
+
+	gradA := grad
+
+	gradB := grad
+
+	if !a.Shape().Equal(b.Shape()) {
+
+		// اگر b بایاس بود
+		if len(b.Shape().Values()) == 1 {
+
+			gradB = grad.ReduceSumAxis(0)
+
+		}
+
+	}
 
 	return []tensor.Tensor{
-
-		grad,
-
-		grad,
+		gradA,
+		gradB,
 	}, nil
-
 }

@@ -3,19 +3,29 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/daniyelford/neurocore/dataset"
-	"github.com/daniyelford/neurocore/docs/dont_use/training"
 	"github.com/daniyelford/neurocore/internal/autograd"
 	"github.com/daniyelford/neurocore/nn"
 	"github.com/daniyelford/neurocore/optim"
+	"github.com/daniyelford/neurocore/training"
 )
 
 func main() {
 	path := "examples/json_classifier/data.json"
-
+	count := 1000
 	if len(os.Args) > 1 {
 		path = os.Args[1]
+	}
+	if len(os.Args) > 2 {
+		arg := os.Args[2]
+		n, err := strconv.Atoi(arg)
+		if err != nil {
+			fmt.Println("arg 2 must be a number", err)
+			return
+		}
+		count = n
 	}
 	x, y, err :=
 		dataset.LoadJSON(path)
@@ -25,7 +35,6 @@ func main() {
 		panic(err)
 
 	}
-
 	ds :=
 		dataset.NewTensorDataset(
 			x,
@@ -49,53 +58,44 @@ func main() {
 			model.Parameters(),
 			0.1,
 		)
-
-	loss :=
-		nn.NewCrossEntropyLoss()
-
-	trainer :=
+	lossFunc := nn.NewCrossEntropyLoss()
+	t :=
 		training.NewTrainer(
 			model,
 			optimizer,
-			loss,
+			lossFunc,
 		)
 
-	for epoch := 0; epoch < 50; epoch++ {
+	for epoch := range count {
 
-		total :=
-			float32(0)
-
+		var total float32
 		for batch := range loader.Batches() {
-
-			input :=
-				autograd.NewVariable(
-					batch.X,
-					false,
+			x := autograd.NewVariable(
+				batch.X,
+				false,
+			)
+			y := autograd.NewVariable(
+				batch.Y,
+				false,
+			)
+			loss :=
+				t.TrainStep(
+					*x,
+					*y,
 				)
 
-			target :=
-				autograd.NewVariable(
-					batch.Y,
-					false,
-				)
-
-			l :=
-				trainer.TrainStep(
-					*input,
-					*target,
-				)
-
-			total += l
+			total += loss
+		}
+		if epoch > 0 {
+			println(
+				"epoch:",
+				epoch,
+				"loss:",
+				total/
+					float32(count),
+			)
 
 		}
-
-		fmt.Println(
-			"epoch",
-			epoch,
-			"loss",
-			total,
-		)
-
 	}
 
 }

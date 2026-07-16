@@ -7,16 +7,16 @@ import (
 	"github.com/daniyelford/neurocore/internal/core/tensor"
 )
 
-type MSELoss struct {
+type MSE struct {
 	Base
 }
 
-func (op *MSELoss) Name() string {
+func (op *MSE) Name() string {
 
 	return "MSELoss"
 
 }
-func (op *MSELoss) Forward(
+func (op *MSE) Forward(
 	inputs ...*autograd.Variable,
 ) (
 	*autograd.Variable,
@@ -78,7 +78,7 @@ func (op *MSELoss) Forward(
 		nil
 
 }
-func (op *MSELoss) Backward(
+func (op *MSE) Backward(
 	grad tensor.Tensor,
 ) (
 	[]tensor.Tensor,

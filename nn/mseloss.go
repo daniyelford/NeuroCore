@@ -41,7 +41,7 @@ func (m *MSELoss) Forward(
 	target autograd.Variable,
 ) autograd.Variable {
 
-	op := &operations.MSELoss{}
+	op := &operations.MSE{}
 
 	out, err := op.Forward(
 

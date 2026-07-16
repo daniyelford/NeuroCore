@@ -1,8 +1,6 @@
 package training
 
 import (
-	"fmt"
-
 	"github.com/daniyelford/neurocore/internal/autograd"
 	"github.com/daniyelford/neurocore/nn"
 	"github.com/daniyelford/neurocore/optim"
@@ -62,13 +60,6 @@ func (t *Trainer) TrainStep(
 	autograd.Backward(
 		&loss,
 	)
-	for _, p := range t.Model.Parameters() {
-
-		fmt.Println("print in trainer",
-			p.Value.Grad().NumElements(),
-		)
-
-	}
 	t.Optimizer.Step()
 
 	return loss.Data().FlatAt(0)
