@@ -16,6 +16,6 @@ NeuroCore is a high-performance machine learning engine written in Go.
 
 ## Install
 
-`bash
+```bash
 go run ./cmd/NeuroCore "examples/json_classifier/data.json" 50
-`bash
+```
