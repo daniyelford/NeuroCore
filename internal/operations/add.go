@@ -31,16 +31,9 @@ func (op *Add) Forward(
 			)
 
 	}
-
 	a := inputs[0]
-
 	b := inputs[1]
-
-	op.Save(
-		a,
-		b,
-	)
-
+	op.Save(a, b)
 	out := autograd.NewVariable(
 		a.Data().Add(b.Data()),
 		a.RequiresGrad() || b.RequiresGrad(),
@@ -58,30 +51,16 @@ func (op *Add) Forward(
 	return out, nil
 
 }
-func (op *Add) Backward(
-	grad tensor.Tensor,
-) ([]tensor.Tensor, error) {
-
+func (op *Add) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
 	a := op.Input(0).Data()
 	b := op.Input(1).Data()
-
 	gradA := grad
-
 	gradB := grad
-
 	if !a.Shape().Equal(b.Shape()) {
-
 		// اگر b بایاس بود
 		if len(b.Shape().Values()) == 1 {
-
 			gradB = grad.ReduceSumAxis(0)
-
 		}
-
 	}
-
-	return []tensor.Tensor{
-		gradA,
-		gradB,
-	}, nil
+	return []tensor.Tensor{gradA, gradB}, nil
 }

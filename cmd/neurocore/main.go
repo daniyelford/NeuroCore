@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/daniyelford/neurocore/dataset"
-	"github.com/daniyelford/neurocore/internal/autograd"
 	"github.com/daniyelford/neurocore/nn"
 	"github.com/daniyelford/neurocore/optim"
 	"github.com/daniyelford/neurocore/training"
@@ -40,62 +39,30 @@ func main() {
 			x,
 			y,
 		)
+	loader := dataset.NewDataLoader(
+		ds,
+		2,
+	)
 
-	loader :=
-		dataset.NewDataLoader(
-			ds,
-			2,
-		)
+	model := nn.NewLinear(
+		2,
+		2,
+	)
 
-	model :=
-		nn.NewLinear(
-			2,
-			2,
-		)
+	optimizer := optim.NewSGD(
+		model.Parameters(),
+		0.1,
+	)
 
-	optimizer :=
-		optim.NewSGD(
-			model.Parameters(),
-			0.1,
-		)
 	lossFunc := nn.NewCrossEntropyLoss()
-	t :=
-		training.NewTrainer(
-			model,
-			optimizer,
-			lossFunc,
-		)
 
-	for epoch := range count {
-
-		var total float32
-		for batch := range loader.Batches() {
-			x := autograd.NewVariable(
-				batch.X,
-				false,
-			)
-			y := autograd.NewVariable(
-				batch.Y,
-				false,
-			)
-			loss :=
-				t.TrainStep(
-					*x,
-					*y,
-				)
-
-			total += loss
-		}
-		if epoch > 0 {
-			println(
-				"epoch:",
-				epoch,
-				"loss:",
-				total/
-					float32(count),
-			)
-
-		}
-	}
-
+	trainer := training.NewTrainer(
+		model,
+		optimizer,
+		lossFunc,
+	)
+	trainer.Run(
+		loader,
+		count,
+	)
 }

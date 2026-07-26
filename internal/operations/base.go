@@ -9,12 +9,7 @@ type Base struct {
 }
 
 func (b *Base) Save(inputs ...*autograd.Variable) {
-
-	b.inputs = append(
-		b.inputs[:0],
-		inputs...,
-	)
-
+	b.inputs = append(b.inputs[:0], inputs...)
 }
 
 func (b *Base) Inputs() []*autograd.Variable {

@@ -20,1088 +20,430 @@ func (t Tensor) Add(other Tensor) Tensor {
 	return binaryOp(t, other, func(a, b float32) float32 { return a + b })
 }
 func (t Tensor) Sub(other Tensor) Tensor {
-
-	return binaryOp(
-		t,
-		other,
-
-		func(
-			a,
-			b float32,
-		) float32 {
-
-			return a - b
-
-		},
-	)
-
+	return binaryOp(t, other, func(a, b float32) float32 { return a - b })
 }
-func (t Tensor) Mul(
-	other Tensor,
-) Tensor {
-
-	return binaryOp(
-		t,
-		other,
-
-		func(
-			a,
-			b float32,
-		) float32 {
-
-			return a * b
-
-		},
-	)
-
+func (t Tensor) Mul(other Tensor) Tensor {
+	return binaryOp(t, other, func(a, b float32) float32 { return a * b })
 }
-
-func (t Tensor) Div(
-	other Tensor,
-) Tensor {
-
-	return binaryOp(
-		t,
-		other,
-
-		func(
-			a,
-			b float32,
-		) float32 {
-
-			return a / b
-
-		},
-	)
-
+func (t Tensor) Div(other Tensor) Tensor {
+	return binaryOp(t, other, func(a, b float32) float32 { return a / b })
 }
-func (t Tensor) At(
-	indices ...int,
-) float32 {
-	index :=
-		t.offset +
-			t.stride.Offset(indices...)
-
+func (t Tensor) At(indices ...int) float32 {
+	index := t.offset + t.stride.Offset(indices...)
 	return t.memory.At(index)
-
 }
-func (t Tensor) Set(
-	value float32,
-	indices ...int,
-) {
-
-	index :=
-		t.offset +
-			t.stride.Offset(indices...)
-
-	t.memory.Set(
-		index,
-		value,
-	)
-
+func (t Tensor) Set(value float32, indices ...int) {
+	index := t.offset + t.stride.Offset(indices...)
+	t.memory.Set(index, value)
 }
-func (t Tensor) TryAt(
-	indices ...int,
-) (float32, bool) {
-
+func (t Tensor) TryAt(indices ...int) (float32, bool) {
 	offset, ok := t.stride.TryOffset(indices...)
-
 	if !ok {
 		return 0, false
 	}
-
 	return t.memory.TryAt(offset)
-
 }
-func (t Tensor) TrySet(
-	value float32,
-	indices ...int,
-) bool {
-
+func (t Tensor) TrySet(value float32, indices ...int) bool {
 	offset, ok := t.stride.TryOffset(indices...)
-
 	if !ok {
 		return false
 	}
-
-	return t.memory.TrySet(
-		offset,
-		value,
-	)
-
+	return t.memory.TrySet(offset, value)
 }
-func (t Tensor) memoryIndex(
-	linear int,
-) int {
-
+func (t Tensor) memoryIndex(linear int) int {
 	return t.offset + linear
-
 }
-func (t Tensor) FlatAt(
-	index int,
-) float32 {
-
-	return t.memory.At(
-		t.offset + index,
-	)
-
+func (t Tensor) FlatAt(index int) float32 {
+	return t.memory.At(t.offset + index)
 }
-func (t Tensor) FlatSet(
-	index int,
-	value float32,
-) {
-
-	t.memory.Set(
-		t.offset+index,
-		value,
-	)
-
+func (t Tensor) FlatSet(index int, value float32) {
+	t.memory.Set(t.offset+index, value)
 }
 func (t Tensor) ArgMax() int {
-
 	maxIndex := 0
-
-	maxValue :=
-		t.FlatAt(0)
-
+	maxValue := t.FlatAt(0)
 	for i := 1; i < t.NumElements(); i++ {
-
-		v :=
-			t.FlatAt(i)
-
+		v := t.FlatAt(i)
 		if v > maxValue {
-
 			maxValue = v
-
 			maxIndex = i
-
 		}
-
 	}
-
 	return maxIndex
-
 }
-func (t Tensor) MulScalar(
-	value float32,
-) Tensor {
-
-	out := New(
-		t.Shape(),
-	)
-
+func (t Tensor) MulScalar(value float32) Tensor {
+	out := New(t.Shape())
 	for i := 0; i < t.Len(); i++ {
-
-		out.FlatSet(
-			i,
-			t.FlatAt(i)*value,
-		)
-
+		out.FlatSet(i, t.FlatAt(i)*value)
 	}
-
 	return out
-
 }
-func OneHot(
-	index int,
-	classes int,
-) Tensor {
-
-	out :=
-		New(
-			shape.New(classes),
-		)
-
-	out.FlatSet(
-		index,
-		1,
-	)
-
+func OneHot(index int, classes int) Tensor {
+	out := New(shape.New(classes))
+	out.FlatSet(index, 1)
 	return out
-
 }
-func (t Tensor) Pad(
-	top int,
-	bottom int,
-	left int,
-	right int,
-	value float32,
-) (Tensor, bool) {
-
-	dims :=
-		t.Shape().Values()
-
+func (t Tensor) Pad(top int, bottom int, left int, right int, value float32) (Tensor, bool) {
+	dims := t.Shape().Values()
 	if len(dims) != 2 {
 		return Tensor{}, false
 	}
-
 	h := dims[0]
 	w := dims[1]
-
-	out :=
-		New(
-			shape.New(
-				h+top+bottom,
-				w+left+right,
-			),
-		)
-
+	out := New(shape.New(h+top+bottom, w+left+right))
 	out.Fill(value)
-
 	for i := 0; i < h; i++ {
-
 		for j := 0; j < w; j++ {
-
-			out.Set(
-				t.At(i, j),
-				i+top,
-				j+left,
-			)
-
+			out.Set(t.At(i, j), i+top, j+left)
 		}
-
 	}
-
 	return out, true
 }
-func (t Tensor) Permute(
-	dims ...int,
-) (Tensor, bool) {
-
+func (t Tensor) Permute(dims ...int) (Tensor, bool) {
 	old := t.Shape().Values()
-
 	if len(dims) != len(old) {
 		return Tensor{}, false
 	}
-
 	used := make([]bool, len(old))
-
 	newShape := make([]int, len(dims))
-
 	for i, d := range dims {
-
 		if d < 0 || d >= len(old) {
 			return Tensor{}, false
 		}
-
 		if used[d] {
 			return Tensor{}, false
 		}
-
 		used[d] = true
-
 		newShape[i] = old[d]
-
 	}
-
-	out :=
-		New(
-			shape.New(newShape...),
-		)
-
+	out := New(shape.New(newShape...))
 	for i := 0; i < t.Len(); i++ {
-
-		// فعلا copy ساده
-		out.FlatSet(
-			i,
-			t.FlatAt(i),
-		)
-
+		out.FlatSet(i, t.FlatAt(i))
 	}
-
 	return out, true
 }
-
 func (t Tensor) Shape() shape.Shape {
-
 	return t.shape
-
 }
-
 func (t Tensor) Stride() stride.Stride {
-
 	return t.stride
-
 }
-
 func (t Tensor) Device() backend.DeviceType {
-
 	return t.device
-
 }
-
 func (t Tensor) Len() int {
-
 	return t.shape.NumElements()
-
 }
 func (t Tensor) NumElements() int {
-
 	return t.shape.NumElements()
-
 }
-
 func (t Tensor) Empty() bool {
-
 	return t.memory.Empty()
-
 }
 func (t Tensor) Offset() int {
-
 	return t.offset
-
 }
 func (t Tensor) SumTensor() Tensor {
-
 	sum := t.Sum()
-
-	out := New(
-		shape.New(1),
-	)
-
+	out := New(shape.New(1))
 	out.Set(sum, 0)
-
 	return out
-
 }
 func (t Tensor) Sum() float32 {
-
 	var result float32
-
 	for i := 0; i < t.Len(); i++ {
-
 		result += t.memory.At(i)
-
 	}
-
 	return result
-
 }
 func (t Tensor) Mean() float32 {
-
 	if t.Len() == 0 {
-
 		return 0
-
 	}
-
 	return t.Sum() / float32(t.Len())
-
 }
 func (t Tensor) Min() float32 {
-
 	if t.Len() == 0 {
-
 		return 0
-
 	}
-
 	value := t.memory.At(0)
-
 	for i := 1; i < t.Len(); i++ {
-
 		if t.memory.At(i) < value {
-
 			value = t.memory.At(i)
-
 		}
-
 	}
-
 	return value
-
 }
 func (t Tensor) Max() float32 {
-
 	if t.Len() == 0 {
-
 		return 0
-
 	}
-
 	value := t.memory.At(0)
-
 	for i := 1; i < t.Len(); i++ {
-
 		if t.memory.At(i) > value {
-
 			value = t.memory.At(i)
-
 		}
-
 	}
-
 	return value
-
 }
 func (t Tensor) ReduceMean() Tensor {
-
 	value := t.Mean()
-
-	out := New(
-		shape.New(1),
-	)
-
-	out.Set(
-		value,
-		0,
-	)
-
+	out := New(shape.New(1))
+	out.Set(value, 0)
 	return out
-
 }
 func (t Tensor) ReduceMax() float32 {
-
-	max :=
-		float32(
-			math.Inf(-1),
-		)
-
+	max := float32(math.Inf(-1))
 	for i := 0; i < t.NumElements(); i++ {
-
 		if v := t.FlatAt(i); v > max {
-
 			max = v
-
 		}
-
 	}
-
 	return max
-
 }
 func (t Tensor) ReLU() Tensor {
-
 	out := t.Clone()
-
 	for i := 0; i < out.NumElements(); i++ {
-
 		idx := out.memoryIndex(i)
-
 		v := out.memory.At(idx)
-
 		if v < 0 {
-
 			out.memory.Set(idx, 0)
-
 		}
-
 	}
-
 	return out
-
 }
 func (t Tensor) ReLUMask() Tensor {
-
-	out := New(
-		t.Shape(),
-	)
-
+	out := New(t.Shape())
 	for i := 0; i < t.NumElements(); i++ {
-
 		idx := t.memoryIndex(i)
-
 		v := t.memory.At(idx)
-
 		if v > 0 {
-
-			out.memory.Set(
-				out.memoryIndex(i),
-				1,
-			)
-
+			out.memory.Set(out.memoryIndex(i), 1)
 		} else {
-
-			out.memory.Set(
-				out.memoryIndex(i),
-				0,
-			)
-
+			out.memory.Set(out.memoryIndex(i), 0)
 		}
-
 	}
-
 	return out
 }
-func (t Tensor) Reshape(
-	newShape shape.Shape,
-) (Tensor, bool) {
-
+func (t Tensor) Reshape(newShape shape.Shape) (Tensor, bool) {
 	if t.NumElements() != newShape.NumElements() {
-
 		return Tensor{}, false
-
 	}
-
 	return Tensor{
-
-		shape: newShape,
-
-		stride: stride.Compute(
-			newShape,
-			t.layout,
-		),
-
+		shape:  newShape,
+		stride: stride.Compute(newShape, t.layout),
 		memory: t.memory,
 		offset: t.offset,
 		device: t.device,
-
 		layout: t.layout,
 	}, true
-
 }
-func Scalar(
-	value float32,
-) Tensor {
-
-	out := New(
-		shape.New(1),
-	)
-
-	out.FlatSet(
-		0,
-		value,
-	)
-
+func Scalar(value float32) Tensor {
+	out := New(shape.New(1))
+	out.FlatSet(0, value)
 	return out
-
 }
-func (t Tensor) Scale(
-	value float32,
-) Tensor {
-
-	out := New(
-		t.Shape(),
-	)
-
+func (t Tensor) Scale(value float32) Tensor {
+	out := New(t.Shape())
 	for i := 0; i < t.NumElements(); i++ {
-
 		idx := t.memoryIndex(i)
-
-		out.memory.Set(
-			idx,
-			t.memory.At(idx)*value,
-		)
-
+		out.memory.Set(idx, t.memory.At(idx)*value)
 	}
-
 	return out
-
 }
-func (t Tensor) ScalarMul(
-	value float32,
-) Tensor {
-
+func (t Tensor) ScalarMul(value float32) Tensor {
 	return t.Scale(value)
-
 }
-
-func (t Tensor) DivScalar(
-	value float32,
-) Tensor {
-
-	return t.Scale(
-		1 / value,
-	)
-
+func (t Tensor) DivScalar(value float32) Tensor {
+	return t.Scale(1 / value)
 }
-
-func (t Tensor) AddScalar(
-	value float32,
-) Tensor {
-
-	out := New(
-		t.Shape(),
-	)
-
+func (t Tensor) AddScalar(value float32) Tensor {
+	out := New(t.Shape())
 	for i := 0; i < t.NumElements(); i++ {
-
 		idx := t.memoryIndex(i)
-
-		out.memory.Set(
-			idx,
-			t.memory.At(idx)+value,
-		)
-
+		out.memory.Set(idx, t.memory.At(idx)+value)
 	}
-
 	return out
-
 }
-
-func (t Tensor) SubScalar(
-	value float32,
-) Tensor {
-
-	return t.AddScalar(
-		-value,
-	)
-
+func (t Tensor) SubScalar(value float32) Tensor {
+	return t.AddScalar(-value)
 }
-
 func (t Tensor) Neg() Tensor {
-
-	return t.Scale(
-		-1,
-	)
-
+	return t.Scale(-1)
 }
-
-func (t Tensor) Dot(
-	other Tensor,
-) (float32, bool) {
-
+func (t Tensor) Dot(other Tensor) (float32, bool) {
 	if t.NumElements() != other.NumElements() {
-
-		return 0,
-			false
-
+		return 0, false
 	}
-
 	var sum float32
-
 	for i := 0; i < t.NumElements(); i++ {
-
-		idxA :=
-			t.memoryIndex(i)
-
-		idxB :=
-			other.memoryIndex(i)
-
-		sum +=
-			t.memory.At(idxA) *
-				other.memory.At(idxB)
-
+		idxA := t.memoryIndex(i)
+		idxB := other.memoryIndex(i)
+		sum += t.memory.At(idxA) * other.memory.At(idxB)
 	}
-
-	return sum,
-		true
-
+	return sum, true
 }
 
-//------------------------------------------------
+// ------------------------------------------------
 // Clone
-//------------------------------------------------
-
+// ------------------------------------------------
 func (t Tensor) ScalarClone() Tensor {
-
-	out := New(
-		t.Shape(),
-	)
-
+	out := New(t.Shape())
 	for i := 0; i < t.NumElements(); i++ {
-
-		idx :=
-			t.memoryIndex(i)
-
-		out.memory.Set(
-			idx,
-			t.memory.At(idx),
-		)
-
+		idx := t.memoryIndex(i)
+		out.memory.Set(idx, t.memory.At(idx))
 	}
-
 	return out
-
 }
 
-//------------------------------------------------
+// ------------------------------------------------
 // Compare
-//------------------------------------------------
-
-func (t Tensor) ScalarEqual(
-	other Tensor,
-) bool {
-
-	if !t.Shape().Equal(
-		other.Shape(),
-	) {
-
+// ------------------------------------------------
+func (t Tensor) ScalarEqual(other Tensor) bool {
+	if !t.Shape().Equal(other.Shape()) {
 		return false
-
 	}
-
 	for i := 0; i < t.NumElements(); i++ {
-
-		if t.FlatAt(i) !=
-			other.FlatAt(i) {
-
+		if t.FlatAt(i) != other.FlatAt(i) {
 			return false
-
 		}
-
 	}
-
 	return true
-
 }
-
-func (t Tensor) AllClose(
-	other Tensor,
-	eps float32,
-) bool {
-
-	if !t.Shape().Equal(
-		other.Shape(),
-	) {
-
+func (t Tensor) AllClose(other Tensor, eps float32) bool {
+	if !t.Shape().Equal(other.Shape()) {
 		return false
-
 	}
-
 	for i := 0; i < t.NumElements(); i++ {
-
-		diff :=
-			float32(
-				math.Abs(
-					float64(
-						t.FlatAt(i) -
-							other.FlatAt(i),
-					),
-				),
-			)
-
+		diff := float32(math.Abs(float64(t.FlatAt(i) - other.FlatAt(i))))
 		if diff > eps {
-
 			return false
-
 		}
-
 	}
-
 	return true
-
 }
 func (t Tensor) LogSoftmax() Tensor {
-
-	return t.LogSoftmaxDim(
-		0,
-	)
-
+	return t.LogSoftmaxDim(0)
 }
-func (t Tensor) LogSoftmaxDim(
-	axis int,
-) Tensor {
-
-	dims :=
-		t.Shape().Values()
-
+func (t Tensor) LogSoftmaxDim(axis int) Tensor {
+	dims := t.Shape().Values()
 	if len(dims) != 2 || axis != 1 {
-
 		return t.LogSoftmax()
-
 	}
-
-	rows :=
-		dims[0]
-
-	cols :=
-		dims[1]
-
-	out :=
-		New(
-			t.Shape(),
-		)
-
+	rows := dims[0]
+	cols := dims[1]
+	out := New(t.Shape())
 	for r := 0; r < rows; r++ {
-
 		// max row
-		max :=
-			t.At(
-				r,
-				0,
-			)
-
+		max := t.At(r, 0)
 		for c := 1; c < cols; c++ {
-
-			v :=
-				t.At(
-					r,
-					c,
-				)
-
+			v := t.At(r, c)
 			if v > max {
-
 				max = v
-
 			}
-
 		}
-
 		// sum(exp(x-max))
-		sum :=
-			float32(0)
-
+		sum := float32(0)
 		for c := 0; c < cols; c++ {
-
-			v :=
-				t.At(
-					r,
-					c,
-				)
-
-			sum +=
-				float32(
-					math.Exp(
-						float64(
-							v - max,
-						),
-					),
-				)
-
+			v := t.At(r, c)
+			sum += float32(math.Exp(float64(v - max)))
 		}
-
-		logSum :=
-			float32(
-				math.Log(
-					float64(sum),
-				),
-			)
-
+		logSum := float32(math.Log(float64(sum)))
 		// x - max - log(sum(exp(x-max)))
 		for c := 0; c < cols; c++ {
-
-			value :=
-				t.At(
-					r,
-					c,
-				)
-
-			out.Set(
-				value-max-logSum,
-				r,
-				c,
-			)
-
+			value := t.At(r, c)
+			out.Set(value-max-logSum, r, c)
 		}
-
 	}
-
 	return out
-
 }
 func (t Tensor) Log() Tensor {
-
-	out := New(
-		t.Shape(),
-	)
-
+	out := New(t.Shape())
 	for i := 0; i < t.NumElements(); i++ {
-
 		idx := t.memoryIndex(i)
-
-		out.memory.Set(
-			idx,
-			float32(
-				math.Log(
-					float64(
-						t.memory.At(idx),
-					),
-				),
-			),
-		)
-
+		out.memory.Set(idx, float32(math.Log(float64(t.memory.At(idx)))))
 	}
-
 	return out
-
 }
-func (t Tensor) MatMul(
-	other Tensor,
-) (Tensor, bool) {
-
+func (t Tensor) MatMul(other Tensor) (Tensor, bool) {
 	a := t.shape.Values()
-
 	b := other.shape.Values()
-
 	if len(a) != 2 || len(b) != 2 {
-
 		return Tensor{}, false
-
 	}
-
 	if a[1] != b[0] {
-
 		return Tensor{}, false
-
 	}
-
-	out := New(
-		shape.New(
-			a[0],
-			b[1],
-		),
-	)
-
+	out := New(shape.New(a[0], b[1]))
 	for i := 0; i < a[0]; i++ {
-
 		for j := 0; j < b[1]; j++ {
-
 			var sum float32
-
 			for k := 0; k < a[1]; k++ {
-
 				av := t.At(i, k)
-
 				bv := other.At(k, j)
-
 				sum += av * bv
-
 			}
-
-			out.Set(
-				sum,
-				i,
-				j,
-			)
-
+			out.Set(sum, i, j)
 		}
-
 	}
-
 	return out, true
-
 }
-func (t Tensor) View(
-	newShape shape.Shape,
-	offset int,
-) (Tensor, bool) {
-
+func (t Tensor) View(newShape shape.Shape, offset int) (Tensor, bool) {
 	if offset < 0 {
-
 		return Tensor{}, false
-
 	}
-
 	if offset+newShape.NumElements() >
 		t.memory.Len()-t.offset {
-
 		return Tensor{}, false
-
 	}
-
 	return Tensor{
-
-		shape: newShape,
-
-		stride: stride.Compute(
-			newShape,
-			t.layout,
-		),
-
+		shape:  newShape,
+		stride: stride.Compute(newShape, t.layout),
 		memory: t.memory,
-
 		offset: t.offset + offset,
-
 		device: t.device,
-
 		layout: t.layout,
 	}, true
-
 }
-func (t Tensor) Slice(
-	start int,
-	end int,
-) (Tensor, bool) {
-
-	dims :=
-		t.shape.Values()
-
+func (t Tensor) Slice(start int, end int) (Tensor, bool) {
+	dims := t.shape.Values()
 	if len(dims) == 0 {
-
 		return Tensor{}, false
-
 	}
-
-	if start < 0 ||
-		end > dims[0] ||
-		start >= end {
-
+	if start < 0 || end > dims[0] || start >= end {
 		return Tensor{}, false
-
 	}
-
-	newDims :=
-		make([]int, len(dims))
-
-	copy(
-		newDims,
-		dims,
-	)
-
-	newDims[0] =
-		end - start
-
-	offset :=
-		start * t.stride.At(0)
-
-	return t.View(
-		shape.New(newDims...),
-		offset,
-	)
-
+	newDims := make([]int, len(dims))
+	copy(newDims, dims)
+	newDims[0] = end - start
+	offset := start * t.stride.At(0)
+	return t.View(shape.New(newDims...), offset)
 }
 func (t Tensor) Clone() Tensor {
-
 	return Tensor{
-
-		shape: t.shape,
-
+		shape:  t.shape,
 		stride: t.stride,
-
 		memory: t.memory.Clone(),
-
 		device: t.device,
-
 		layout: t.layout,
 	}
-
 }
 func (t Tensor) Tanh() Tensor {
-
 	out := t.Clone()
-
 	for i := 0; i < out.NumElements(); i++ {
-
 		idx := out.memoryIndex(i)
-
 		v := out.memory.At(idx)
-
-		out.memory.Set(
-			idx,
-			float32(
-				math.Tanh(
-					float64(v),
-				),
-			),
-		)
-
+		out.memory.Set(idx, float32(math.Tanh(float64(v))))
 	}
-
 	return out
-
 }
-func (t Tensor) TanhBackward(
-	grad Tensor,
-) Tensor {
-
-	out := New(
-		t.Shape(),
-	)
-
+func (t Tensor) TanhBackward(grad Tensor) Tensor {
+	out := New(t.Shape())
 	for i := 0; i < t.NumElements(); i++ {
-
 		idx := t.memoryIndex(i)
-
 		v := t.memory.At(idx)
-
-		g := grad.memory.At(
-			grad.memoryIndex(i),
-		)
-
-		out.memory.Set(
-			out.memoryIndex(i),
-			g*(1-v*v))
+		g := grad.memory.At(grad.memoryIndex(i))
+		out.memory.Set(out.memoryIndex(i), g*(1-v*v))
 	}
 	return out
 }
@@ -1372,80 +714,80 @@ func broadcastBinary(a Tensor, b Tensor, op func(float32, float32) float32) (Ten
 	}
 	return out, true
 }
-func (t Tensor) ReduceSumAxis(
-	axis int,
-) Tensor {
-
+func (t Tensor) ReduceSumAxis(axis int) Tensor {
 	dims := t.Shape().Values()
-
 	if len(dims) != 2 {
-
 		panic("ReduceSumAxis currently supports only 2D tensors")
-
 	}
-
 	rows := dims[0]
-
 	cols := dims[1]
-
 	switch axis {
-
 	case 0:
-
-		out := New(
-
-			shape.New(cols),
-		)
-
-		for c := 0; c < cols; c++ {
-
+		out := New(shape.New(cols))
+		for c := range cols {
 			sum := float32(0)
-
-			for r := 0; r < rows; r++ {
-
-				sum += t.At(
-					r,
-					c,
-				)
-
+			for r := range rows {
+				sum += t.At(r, c)
 			}
-
-			out.Set(
-				sum,
-				c,
-			)
-
+			out.Set(sum, c)
 		}
-
 		return out
-
 	case 1:
-
-		out := New(
-
-			shape.New(rows),
-		)
-
-		for r := 0; r < rows; r++ {
-
+		out := New(shape.New(rows))
+		for r := range rows {
 			sum := float32(0)
-
-			for c := 0; c < cols; c++ {
-
-				sum += t.At(
-					r,
-					c,
-				)
-
+			for c := range cols {
+				sum += t.At(r, c)
 			}
-
-			out.Set(
-				sum,
-				r,
-			)
+			out.Set(sum, r)
 		}
 		return out
 	default:
 		panic("invalid axis")
 	}
 }
+
+// func reduceMeanBackward(
+
+// 	grad tensor.Tensor,
+// 	inputShape shape.Shape,
+// 	axis int,
+
+// ) tensor.Tensor {
+// 	out := tensor.New(inputShape)
+// 	axisSize := inputShape[axis]
+// 	for position := range inputShape {
+// 		out.Set(position, gard.value/float32(axisSize))
+// 	}
+// 	return out
+// }
+
+// func reduceMaxBackward(
+//
+//	input tensor.Tensor,
+//	grad tensor.Tensor,
+//	axis int,
+//
+//	) tensor.Tensor {
+//	    out := tensor.New(input.Shape())
+//	    for output := range index {
+//	        maxValue := grad.position
+//	        for axis positions {
+//	            if input == maxValue {
+//	                out += grad
+//	            }
+//	        }
+//	    }
+//	    return out
+//	}
+// func ReduceMeanAxis(x *autograd.Variable, axis int) *autograd.Variable {
+// 	outTensor := reduceMean(x.Data(), axis)
+// 	out := autograd.NewVariable(outTensor, x.RequiresGrad())
+// 	if x.RequiresGrad() {
+// 		out.SetBackward(func(grad tensor.Tensor) {
+// 			gx := reduceMeanBackward(grad, x.Shape(), axis)
+// 			x.AccumulateGrad(gx)
+// 		})
+// 	}
+// 	return out
+// }
