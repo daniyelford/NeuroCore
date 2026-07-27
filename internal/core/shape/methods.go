@@ -28,9 +28,6 @@ func (s Shape) Last() int {
 func (s Shape) Values() []int {
 	return s.vector.Values()
 }
-func (s Shape) cloneVector() ndim.Vector {
-	return s.vector.Clone()
-}
 func (s Shape) Valid() bool {
 	return s.vector.Valid()
 }
@@ -107,11 +104,7 @@ func (s Shape) NumElements() int {
 	})
 	return product
 }
-func newFromVector(v ndim.Vector) Shape {
-	return Shape{
-		vector: v,
-	}
-}
+
 func (s Shape) Equal(other Shape) bool {
 	return s.vector.Equal(other.vector)
 }
@@ -170,3 +163,12 @@ func (s Shape) BroadcastShape(other Shape) (Shape, bool) {
 	}
 	return New(result...), true
 }
+
+// func newFromVector(v ndim.Vector) Shape {
+// 	return Shape{
+// 		vector: v,
+// 	}
+// }
+// func (s Shape) cloneVector() ndim.Vector {
+// 	return s.vector.Clone()
+// }
