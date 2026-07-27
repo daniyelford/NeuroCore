@@ -39,6 +39,7 @@ type jsonVariable struct {
 }
 type BaseModule struct {
 	training bool
+	name     string
 }
 type Sequential struct {
 	BaseModule

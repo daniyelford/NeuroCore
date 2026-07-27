@@ -130,7 +130,7 @@ func TestF(t *testing.T) {
 	)
 	trainer :=
 		training.NewTrainer(
-			nn.Model{}.Train(),
+			nn.BaseModule(model).Training(),
 			optim.NewAdam(
 				model.Parameters(),
 				1e-3,
