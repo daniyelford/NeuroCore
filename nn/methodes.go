@@ -17,83 +17,47 @@ import (
 	initial "github.com/daniyelford/neurocore/nn/init"
 )
 
-func NewParameter(
-	v *autograd.Variable,
-) Parameter {
-
-	return Parameter{
-
-		Value: v,
-	}
-
+func NewParameter(v *autograd.Variable) Parameter {
+	return Parameter{Value: v}
 }
 func (p Parameter) NumElements() int {
-
 	return p.Value.Data().Shape().NumElements()
-
 }
-func SaveJSON(
-	state StateDict,
-	path string,
-) error {
-
+func SaveJSON(state StateDict, path string) error {
 	out := map[string]jsonVariable{}
-
 	for name, v := range state {
-
 		data := make([]float32, v.Data().Len())
-
 		for i := 0; i < v.Data().Len(); i++ {
 			data[i] = v.Data().FlatAt(i)
 		}
-
 		out[name] = jsonVariable{
 			Shape: v.Data().Shape().Values(),
 			Data:  data,
 		}
 	}
-
-	bytes, err := json.MarshalIndent(
-		out,
-		"",
-		"  ",
-	)
+	bytes, err := json.MarshalIndent(out, "", "  ")
 	if err != nil {
 		return err
 	}
-
-	return os.WriteFile(
-		path,
-		bytes,
-		0644,
-	)
+	return os.WriteFile(path, bytes, 0644)
 }
 func (s *Sequential) StateDict() map[string]*autograd.Variable {
 	result := map[string]*autograd.Variable{}
 	for index, layer := range s.Modules {
 		for name, value := range layer.StateDict() {
-			key :=
-				fmt.Sprintf(
-					"%d.%s",
-					index,
-					name,
-				)
+			key := fmt.Sprintf("%d.%s", index, name)
 			result[key] = value
 		}
 	}
 	return result
 }
-func NewSequential(
-	modules ...Module,
-) *Sequential {
+func NewSequential(modules ...Module) *Sequential {
 	return &Sequential{
 		BaseModule: NewBaseModule("Sequential"),
 		Modules:    modules,
 	}
 }
-func (s *Sequential) Forward(
-	input autograd.Variable,
-) autograd.Variable {
+func (s *Sequential) Forward(input autograd.Variable) autograd.Variable {
 	out := input
 	for _, m := range s.Modules {
 		out = m.Forward(out)
@@ -108,209 +72,95 @@ func (s Sequential) Parameters() []Parameter {
 	return params
 }
 func (s *Sequential) Children() []Module {
-
 	return s.Modules
-
 }
 func NewMSELoss() *MSELoss {
-
-	return &MSELoss{
-
-		BaseModule: NewBaseModule("MSELoss"),
-	}
-
+	return &MSELoss{BaseModule: NewBaseModule("MSELoss")}
 }
 func (m *MSELoss) Parameters() []Parameter {
-
 	return nil
-
 }
-
 func (m *MSELoss) StateDict() map[string]*autograd.Variable {
-
 	return map[string]*autograd.Variable{}
-
 }
-
-func (m *MSELoss) Forward(
-	prediction autograd.Variable,
-	target autograd.Variable,
-) autograd.Variable {
-
+func (m *MSELoss) Forward(prediction autograd.Variable, target autograd.Variable) autograd.Variable {
 	op := &operations.MSE{}
-
-	out, err := op.Forward(
-
-		&prediction,
-
-		&target,
-	)
-
+	out, err := op.Forward(&prediction, &target)
 	if err != nil {
-
 		panic(err)
-
 	}
-
 	return *out
-
 }
-func NewModel(
-	module Module,
-) *Model {
-
+func NewModel(module Module) *Model {
 	return &Model{
-
-		module: module,
-
+		module:   module,
 		training: true,
 	}
-
 }
 func (m *Model) Train() {
 	m.training = true
 	m.module.Train()
 }
-
 func (m *Model) Eval() {
 	m.training = false
 	m.module.Eval()
 }
 func (m *Model) Parameters() []Parameter {
-
 	return m.module.Parameters()
-
 }
-func (m *Model) Forward(
-	input autograd.Variable,
-) autograd.Variable {
-
-	return m.module.Forward(
-		input,
-	)
-
+func (m *Model) Forward(input autograd.Variable) autograd.Variable {
+	return m.module.Forward(input)
 }
 func (m *Model) StateDict() map[string]*autograd.Variable {
-
 	return m.module.StateDict()
-
 }
-func (m *Model) LoadStateDict(
-	state map[string]*autograd.Variable,
-) error {
-
+func (m *Model) LoadStateDict(state map[string]*autograd.Variable) error {
 	current := m.StateDict()
-
 	for name, value := range state {
-
 		dst, ok := current[name]
 		if !ok {
-
-			return fmt.Errorf(
-				"unknown parameter: %s",
-				name,
-			)
-
+			return fmt.Errorf("unknown parameter: %s", name)
 		}
-
-		dst.SetData(
-			value.Data().Clone(),
-		)
-
-		dst.SetRequiresGrad(
-			value.RequiresGrad(),
-		)
-
+		dst.SetData(value.Data().Clone())
+		dst.SetRequiresGrad(value.RequiresGrad())
 	}
-
 	return nil
 }
-func NewMaxPool2D(
-	kernelH,
-	kernelW,
-	strideH,
-	strideW int,
-) *MaxPool2D {
-	return &MaxPool2D{
-		BaseModule: NewBaseModule("MaxPool2D"),
-		KernelH:    kernelH,
-		KernelW:    kernelW,
-		StrideH:    strideH,
-		StrideW:    strideW,
-	}
-
+func NewMaxPool2D(kernelH, kernelW, strideH, strideW int) *MaxPool2D {
+	return &MaxPool2D{BaseModule: NewBaseModule("MaxPool2D"), KernelH: kernelH, KernelW: kernelW, StrideH: strideH, StrideW: strideW}
 }
-func (m *MaxPool2D) Forward(
-	input autograd.Variable,
-) autograd.Variable {
-
-	op :=
-		operations.NewMaxPool2D(
-			m.KernelH,
-			m.KernelW,
-			m.StrideH,
-			m.StrideW,
-		)
-
-	out, err :=
-		op.Forward(
-			&input,
-		)
-
+func (m *MaxPool2D) Forward(input autograd.Variable) autograd.Variable {
+	op := operations.NewMaxPool2D(m.KernelH, m.KernelW, m.StrideH, m.StrideW)
+	out, err := op.Forward(&input)
 	if err != nil {
-
 		panic(err)
-
 	}
-
 	return *out
-
 }
 func (m *MaxPool2D) Parameters() []Parameter {
-
 	return []Parameter{}
-
 }
 func (m *MaxPool2D) StateDict() map[string]*autograd.Variable {
-
 	return map[string]*autograd.Variable{}
-
 }
-func LoadJSON(
-	path string,
-) (StateDict, error) {
-
+func LoadJSON(path string) (StateDict, error) {
 	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-
 	raw := map[string]jsonVariable{}
-
 	err = json.Unmarshal(bytes, &raw)
 	if err != nil {
 		return nil, err
 	}
-
 	state := StateDict{}
-
 	for name, j := range raw {
-
-		t := tensor.New(
-			shape.New(j.Shape...),
-		)
-
+		t := tensor.New(shape.New(j.Shape...))
 		for i, v := range j.Data {
 			t.FlatSet(i, v)
 		}
-
-		state[name] =
-			autograd.NewVariable(
-				t,
-				true,
-			)
+		state[name] = autograd.NewVariable(t, true)
 	}
-
 	return state, nil
 }
 func (l *Linear) StateDict() map[string]*autograd.Variable {
@@ -319,80 +169,39 @@ func (l *Linear) StateDict() map[string]*autograd.Variable {
 		"bias":   l.Bias.Value,
 	}
 }
-func NewLinear(
-	in int,
-	out int,
-) *Linear {
-	w := tensor.New(
-		shape.New(
-			in,
-			out,
-		),
-	)
-	initial.Xavier{}.Init(
-		&w,
-	)
-	b := tensor.New(
-		shape.New(
-			out,
-		),
-	)
+func NewLinear(in int, out int) *Linear {
+	w := tensor.New(shape.New(in, out))
+	initial.Xavier{}.Init(&w)
+	b := tensor.New(shape.New(out))
 	return &Linear{
 		BaseModule: NewBaseModule("Linear"),
-		Weight: NewParameter(
-			autograd.NewVariable(
-				w,
-				true,
-			),
-		),
-		Bias: NewParameter(
-			autograd.NewVariable(
-				b,
-				true,
-			),
-		),
-		In:  in,
-		Out: out,
+		Weight:     NewParameter(autograd.NewVariable(w, true)),
+		Bias:       NewParameter(autograd.NewVariable(b, true)),
+		In:         in,
+		Out:        out,
 	}
 }
-func (l *Linear) Forward(
-	input autograd.Variable,
-) autograd.Variable {
-	matmul :=
-		&operations.MatMul{}
-	x, err :=
-		matmul.Forward(
-			&input,
-			l.Weight.Value,
-		)
+func (l *Linear) Forward(input autograd.Variable) autograd.Variable {
+	matmul := &operations.MatMul{}
+	x, err := matmul.Forward(&input, l.Weight.Value)
 	if err != nil {
 		panic(err)
 	}
-	add :=
-		&operations.Add{}
-	out, err :=
-		add.Forward(
-			x,
-			l.Bias.Value,
-		)
+	add := &operations.Add{}
+	out, err := add.Forward(x, l.Bias.Value)
 	if err != nil {
 		panic(err)
 	}
 	return *out
 }
 func (l *Linear) Parameters() []Parameter {
-	return []Parameter{
-		l.Weight,
-		l.Bias,
-	}
+	return []Parameter{l.Weight, l.Bias}
 }
 func (l *Linear) Children() []Module {
 	return nil
 }
 func NewFlatten() *Flatten {
-	return &Flatten{
-		BaseModule: NewBaseModule("Flatten"),
-	}
+	return &Flatten{BaseModule: NewBaseModule("Flatten")}
 }
 func (f *Flatten) Parameters() []Parameter {
 	return nil
@@ -400,160 +209,62 @@ func (f *Flatten) Parameters() []Parameter {
 func (f *Flatten) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{}
 }
-func (f *Flatten) Forward(
-	input autograd.Variable,
-) autograd.Variable {
-
-	d :=
-		input.Data().Shape().Values()
-
+func (f *Flatten) Forward(input autograd.Variable) autograd.Variable {
+	d := input.Data().Shape().Values()
 	if len(d) < 2 {
-
 		panic("flatten requires batch dimension")
-
 	}
-
-	batch :=
-		d[0]
-
+	batch := d[0]
 	size := 1
-
 	for i := 1; i < len(d); i++ {
-
 		size *= d[i]
-
 	}
-
-	out, ok :=
-		input.Data().Reshape(
-			shape.New(
-				batch,
-				size,
-			),
-		)
-
+	out, ok := input.Data().Reshape(shape.New(batch, size))
 	if !ok {
-
 		panic("flatten reshape failed")
-
 	}
-
-	return *autograd.NewVariable(
-		out,
-		input.RequiresGrad(),
-	)
-
+	return *autograd.NewVariable(out, input.RequiresGrad())
 }
-func NewEmbedding(
-	numEmbeddings int,
-	embeddingDim int,
-) *Embedding {
-
-	w :=
-		tensor.New(
-			shape.New(
-				numEmbeddings,
-				embeddingDim,
-			),
-		)
-
+func NewEmbedding(numEmbeddings int, embeddingDim int) *Embedding {
+	w := tensor.New(shape.New(numEmbeddings, embeddingDim))
 	return &Embedding{
-
-		BaseModule: NewBaseModule("Embedding"),
-
+		BaseModule:    NewBaseModule("Embedding"),
 		NumEmbeddings: numEmbeddings,
-
-		EmbeddingDim: embeddingDim,
-
-		Weight: NewParameter(
-			autograd.NewVariable(
-				w,
-				true,
-			),
-		),
+		EmbeddingDim:  embeddingDim,
+		Weight:        NewParameter(autograd.NewVariable(w, true)),
 	}
 }
 func (e *Embedding) Parameters() []Parameter {
-
-	return []Parameter{
-		e.Weight,
-	}
-
+	return []Parameter{e.Weight}
 }
-
 func (e *Embedding) StateDict() map[string]*autograd.Variable {
-
-	return map[string]*autograd.Variable{
-
-		"weight": e.Weight.Value,
-	}
+	return map[string]*autograd.Variable{"weight": e.Weight.Value}
 }
-
-func (e *Embedding) Forward(
-	input autograd.Variable,
-) autograd.Variable {
-
-	indices, err :=
-		input.Data().Indices()
-
+func (e *Embedding) Forward(input autograd.Variable) autograd.Variable {
+	indices, err := input.Data().Indices()
 	if err != nil {
-
 		panic(err)
-
 	}
-
-	out :=
-		tensor.New(
-			shape.New(
-				len(indices),
-				e.EmbeddingDim,
-			),
-		)
-
+	out := tensor.New(shape.New(len(indices), e.EmbeddingDim))
 	for i, index := range indices {
-
-		if index < 0 ||
-			index >= e.NumEmbeddings {
-
-			panic(
-				"embedding index out of range",
-			)
-
+		if index < 0 || index >= e.NumEmbeddings {
+			panic("embedding index out of range")
 		}
-
 		for j := 0; j < e.EmbeddingDim; j++ {
-
-			v :=
-				e.Weight.Value.Data().At(
-					index,
-					j,
-				)
-
-			out.Set(
-				v,
-				i,
-				j,
-			)
-
+			v := e.Weight.Value.Data().At(index, j)
+			out.Set(v, i, j)
 		}
 	}
-
-	return *autograd.NewVariable(
-		out,
-		input.RequiresGrad(),
-	)
-
+	return *autograd.NewVariable(out, input.RequiresGrad())
 }
 func DropoutNew(
-	p float32,
-) *Dropout {
+	p float32) *Dropout {
 	if p < 0 {
 		p = 0
 	}
 	if p > 1 {
 		p = 1
 	}
-
 	return &Dropout{
 		BaseModule:  NewBaseModule("Dropout"),
 		Probability: p,
@@ -568,245 +279,85 @@ func (d Dropout) Children() []Module {
 func (d *Dropout) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{}
 }
-func (d *Dropout) Forward(
-	input autograd.Variable,
-) autograd.Variable {
-	// Eval mode
+func (d *Dropout) Forward(input autograd.Variable) autograd.Variable {
 	if !d.Training() {
-
 		return input
-
 	}
-
 	data := input.Data()
-
 	out := data.Clone()
-
 	scale := float32(1.0)
-
 	if d.Probability < 1 {
-
 		scale = 1 / (1 - d.Probability)
-
 	}
-
 	for i := 0; i < out.Len(); i++ {
-
 		if rand.Float32() < d.Probability {
-
-			out.FlatSet(
-				i,
-				0,
-			)
-
+			out.FlatSet(i, 0)
 		} else {
-
-			out.FlatSet(
-				i,
-				out.FlatAt(i)*scale,
-			)
-
+			out.FlatSet(i, out.FlatAt(i)*scale)
 		}
-
 	}
-
-	return *autograd.NewVariable(
-		out,
-		input.RequiresGrad(),
-	)
-
+	return *autograd.NewVariable(out, input.RequiresGrad())
 }
 func NewCrossEntropyLoss() *CrossEntropyLoss {
-
-	return &CrossEntropyLoss{
-
-		BaseModule: NewBaseModule("CrossEntropyLoss"),
-	}
-
+	return &CrossEntropyLoss{BaseModule: NewBaseModule("CrossEntropyLoss")}
 }
 func (c *CrossEntropyLoss) Parameters() []Parameter {
-
 	return []Parameter{}
-
 }
-func (c *CrossEntropyLoss) Forward(
-	input autograd.Variable,
-	target autograd.Variable,
-) autograd.Variable {
-
-	out, err :=
-		c.op.Forward(
-			&input,
-			&target,
-		)
-
+func (c *CrossEntropyLoss) Forward(input autograd.Variable, target autograd.Variable) autograd.Variable {
+	out, err := c.op.Forward(&input, &target)
 	if err != nil {
-
 		panic(err)
-
 	}
-
 	return *out
-
 }
-func NewBatchNorm(
-	numFeatures int,
-) *BatchNorm {
-
-	gamma := tensor.New(
-		shape.New(numFeatures),
-	)
+func NewBatchNorm(numFeatures int) *BatchNorm {
+	gamma := tensor.New(shape.New(numFeatures))
 	gamma.Fill(1)
-
-	beta := tensor.New(
-		shape.New(numFeatures),
-	)
-
-	runningMean := tensor.New(
-		shape.New(numFeatures),
-	)
-
-	runningVar := tensor.New(
-		shape.New(numFeatures),
-	)
+	beta := tensor.New(shape.New(numFeatures))
+	runningMean := tensor.New(shape.New(numFeatures))
+	runningVar := tensor.New(shape.New(numFeatures))
 	runningVar.Fill(1)
-
 	return &BatchNorm{
-
-		BaseModule: NewBaseModule("BatchNorm"),
-
+		BaseModule:  NewBaseModule("BatchNorm"),
 		NumFeatures: numFeatures,
-
-		Eps: 1e-5,
-
-		Momentum: 0.1,
-
-		Weight: NewParameter(
-			autograd.NewVariable(
-				gamma,
-				true,
-			),
-		),
-
-		Bias: NewParameter(
-			autograd.NewVariable(
-				beta,
-				true,
-			),
-		),
-
+		Eps:         1e-5,
+		Momentum:    0.1,
+		Weight:      NewParameter(autograd.NewVariable(gamma, true)),
+		Bias:        NewParameter(autograd.NewVariable(beta, true)),
 		RunningMean: runningMean,
-
-		RunningVar: runningVar,
+		RunningVar:  runningVar,
 	}
-
 }
 func (b *BatchNorm) Parameters() []Parameter {
-
-	return []Parameter{
-
-		b.Weight,
-
-		b.Bias,
-	}
-
+	return []Parameter{b.Weight, b.Bias}
 }
-
 func (b *BatchNorm) StateDict() map[string]*autograd.Variable {
-
-	return map[string]*autograd.Variable{
-
-		"weight": b.Weight.Value,
-
-		"bias": b.Bias.Value,
-	}
-
+	return map[string]*autograd.Variable{"weight": b.Weight.Value, "bias": b.Bias.Value}
 }
-func (b *BatchNorm) Forward(
-	input autograd.Variable,
-) autograd.Variable {
-
-	op :=
-		operations.NewBatchNorm(
-			b.NumFeatures,
-			b.Eps,
-		)
-
-	out, err :=
-		op.Forward(
-			&input,
-			b.Weight.Value,
-			b.Bias.Value,
-		)
-
+func (b *BatchNorm) Forward(input autograd.Variable) autograd.Variable {
+	op := operations.NewBatchNorm(b.NumFeatures, b.Eps)
+	out, err := op.Forward(&input, b.Weight.Value, b.Bias.Value)
 	if err != nil {
-
 		panic(err)
-
 	}
-
 	return *out
-
 }
-func NewBatchNorm2D(
-	channels int,
-) *BatchNorm2D {
-
-	gamma :=
-		tensor.New(
-			shape.New(
-				channels,
-			),
-		)
-
-	beta :=
-		tensor.New(
-			shape.New(
-				channels,
-			),
-		)
-
+func NewBatchNorm2D(channels int) *BatchNorm2D {
+	gamma := tensor.New(shape.New(channels))
+	beta := tensor.New(shape.New(channels))
 	return &BatchNorm2D{
-
-		BaseModule: NewBaseModule("BatchNorm2D"),
-
-		Gamma: NewParameter(
-			autograd.NewVariable(
-				gamma,
-				true,
-			),
-		),
-
-		Beta: NewParameter(
-			autograd.NewVariable(
-				beta,
-				true,
-			),
-		),
-
-		RunningMean: tensor.New(
-			shape.New(
-				channels,
-			),
-		),
-
-		RunningVar: tensor.New(
-			shape.New(
-				channels,
-			),
-		),
-
-		Channels: channels,
-
-		Eps: 1e-5,
-
-		Momentum: 0.1,
+		BaseModule:  NewBaseModule("BatchNorm2D"),
+		Gamma:       NewParameter(autograd.NewVariable(gamma, true)),
+		Beta:        NewParameter(autograd.NewVariable(beta, true)),
+		RunningMean: tensor.New(shape.New(channels)),
+		RunningVar:  tensor.New(shape.New(channels)),
+		Channels:    channels,
+		Eps:         1e-5,
+		Momentum:    0.1,
 	}
-
 }
-func (b *BatchNorm2D) Forward(
-	input autograd.Variable,
-) autograd.Variable {
+func (b *BatchNorm2D) Forward(input autograd.Variable) autograd.Variable {
 	op := operations.NewBatchNorm(b.Channels, b.Eps)
 	out, err := op.Forward(&input, b.Gamma.Value, b.Beta.Value)
 	if err != nil {
@@ -821,19 +372,13 @@ func (b *BatchNorm2D) Parameters() []Parameter {
 	}
 }
 func (b *BatchNorm2D) StateDict() map[string]*autograd.Variable {
-	return map[string]*autograd.Variable{
-		"gamma": b.Gamma.Value,
-		"beta":  b.Beta.Value,
-	}
+	return map[string]*autograd.Variable{"gamma": b.Gamma.Value, "beta": b.Beta.Value}
 }
 func NewDropout(p float32) *Dropout {
 	return DropoutNew(p)
 }
 func NewBaseModule(name string) BaseModule {
-	return BaseModule{
-		training: true,
-		name:     name,
-	}
+	return BaseModule{training: true, name: name}
 }
 func (b *BaseModule) Name() string {
 	return b.name
@@ -846,162 +391,58 @@ func (b *BaseModule) Train() {
 }
 func (b *BaseModule) Eval() {
 	b.training = false
+	for _, child := range b.Children() {
+		child.Eval()
+	}
 }
 func (b BaseModule) Training() bool {
-
 	return b.training
-
 }
 func (b BaseModule) Children() []Module {
-
 	return nil
-
 }
-func LayerNormNew(
-	features int,
-) LayerNorm {
-	gamma :=
-		tensor.New(
-			shape.New(features),
-		)
-
-	beta :=
-		tensor.New(
-			shape.New(features),
-		)
-
+func LayerNormNew(features int) LayerNorm {
+	gamma := tensor.New(shape.New(features))
+	beta := tensor.New(shape.New(features))
 	return LayerNorm{
-
 		BaseModule: NewBaseModule("LayerNorm"),
-
-		Shape: shape.New(features),
-
-		Gamma: NewParameter(
-			autograd.NewVariable(
-				gamma,
-				true,
-			),
-		),
-
-		Beta: NewParameter(
-			autograd.NewVariable(
-				beta,
-				true,
-			),
-		),
-
-		Eps: 1e-5,
+		Shape:      shape.New(features),
+		Gamma:      NewParameter(autograd.NewVariable(gamma, true)),
+		Beta:       NewParameter(autograd.NewVariable(beta, true)),
+		Eps:        1e-5,
 	}
-
 }
-func (l LayerNorm) Forward(
-	input autograd.Variable,
-) autograd.Variable {
-
-	x :=
-		input.Data()
-
+func (l LayerNorm) Forward(input autograd.Variable) autograd.Variable {
+	x := input.Data()
 	var mean float32
-
 	for i := 0; i < x.Len(); i++ {
-
 		mean += x.FlatAt(i)
-
 	}
-
 	mean /= float32(x.Len())
-
 	var variance float32
-
 	for i := 0; i < x.Len(); i++ {
-
-		diff :=
-			x.FlatAt(i) - mean
-
+		diff := x.FlatAt(i) - mean
 		variance += diff * diff
-
 	}
-
 	variance /= float32(x.Len())
-
-	out :=
-		tensor.New(
-			x.Shape(),
-		)
-
+	out := tensor.New(x.Shape())
 	for i := 0; i < x.Len(); i++ {
-
-		n :=
-			(x.FlatAt(i) - mean) /
-				float32(
-					math.Sqrt(
-						float64(variance+l.Eps),
-					),
-				)
-
-		v :=
-			n*l.Gamma.Value.Data().FlatAt(i) +
-				l.Beta.Value.Data().FlatAt(i)
-
-		out.FlatSet(
-			i,
-			v,
-		)
-
+		n := (x.FlatAt(i) - mean) / float32(math.Sqrt(float64(variance+l.Eps)))
+		v := n*l.Gamma.Value.Data().FlatAt(i) + l.Beta.Value.Data().FlatAt(i)
+		out.FlatSet(i, v)
 	}
-
-	return *autograd.NewVariable(
-		out,
-		true,
-	)
-
+	return *autograd.NewVariable(out, true)
 }
 func (l LayerNorm) Parameters() []Parameter {
-
-	return []Parameter{
-
-		l.Gamma,
-
-		l.Beta,
-	}
-
+	return []Parameter{l.Gamma, l.Beta}
 }
-func NewConv2D(
-	inChannels int,
-	outChannels int,
-	kernelH int,
-	kernelW int,
-) *Conv2D {
-
-	w :=
-		tensor.New(
-			shape.New(
-				outChannels,
-				inChannels,
-				kernelH,
-				kernelW,
-			),
-		)
-	b :=
-		tensor.New(
-			shape.New(
-				outChannels,
-			),
-		)
+func NewConv2D(inChannels int, outChannels int, kernelH int, kernelW int) *Conv2D {
+	w := tensor.New(shape.New(outChannels, inChannels, kernelH, kernelW))
+	b := tensor.New(shape.New(outChannels))
 	return &Conv2D{
-		BaseModule: NewBaseModule("Conv2D"),
-		Weight: NewParameter(
-			autograd.NewVariable(
-				w,
-				true,
-			),
-		),
-		Bias: NewParameter(
-			autograd.NewVariable(
-				b,
-				true,
-			),
-		),
+		BaseModule:  NewBaseModule("Conv2D"),
+		Weight:      NewParameter(autograd.NewVariable(w, true)),
+		Bias:        NewParameter(autograd.NewVariable(b, true)),
 		InChannels:  inChannels,
 		OutChannels: outChannels,
 		KernelH:     kernelH,
@@ -1011,138 +452,47 @@ func NewConv2D(
 	}
 }
 func (c *Conv2D) Parameters() []Parameter {
-
-	return []Parameter{
-
-		c.Weight,
-
-		c.Bias,
-	}
-
+	return []Parameter{c.Weight, c.Bias}
 }
-
 func (c *Conv2D) StateDict() map[string]*autograd.Variable {
-
-	return map[string]*autograd.Variable{
-
-		"weight": c.Weight.Value,
-
-		"bias": c.Bias.Value,
-	}
-
+	return map[string]*autograd.Variable{"weight": c.Weight.Value, "bias": c.Bias.Value}
 }
-
-func (c *Conv2D) Forward(
-	input autograd.Variable,
-) autograd.Variable {
-
-	x :=
-		input.Data()
-
-	d :=
-		x.Shape().Values()
-
+func (c *Conv2D) Forward(input autograd.Variable) autograd.Variable {
+	x := input.Data()
+	d := x.Shape().Values()
 	if len(d) != 4 {
-
 		panic("Conv2D expects [N,C,H,W]")
-
 	}
-
-	n :=
-		d[0]
-
-	h :=
-		d[2]
-
-	w :=
-		d[3]
-
-	outH :=
-		(h+2*c.Padding-c.KernelH)/
-			c.Stride + 1
-
-	outW :=
-		(w+2*c.Padding-c.KernelW)/
-			c.Stride + 1
-
-	out :=
-		tensor.New(
-			shape.New(
-				n,
-				c.OutChannels,
-				outH,
-				outW,
-			),
-		)
-
-	for b := 0; b < n; b++ {
-
-		for oc := 0; oc < c.OutChannels; oc++ {
-
-			for oy := 0; oy < outH; oy++ {
-
-				for ox := 0; ox < outW; ox++ {
-
+	n := d[0]
+	h := d[2]
+	w := d[3]
+	outH := (h+2*c.Padding-c.KernelH)/c.Stride + 1
+	outW := (w+2*c.Padding-c.KernelW)/c.Stride + 1
+	out := tensor.New(shape.New(n, c.OutChannels, outH, outW))
+	for b := range n {
+		for oc := range c.OutChannels {
+			for oy := range outH {
+				for ox := range outW {
 					var sum float32
-
-					for ic := 0; ic < c.InChannels; ic++ {
-
-						for ky := 0; ky < c.KernelH; ky++ {
-
-							for kx := 0; kx < c.KernelW; kx++ {
-
-								iy :=
-									oy*c.Stride + ky - c.Padding
-
-								ix :=
-									ox*c.Stride + kx - c.Padding
-
-								if iy < 0 ||
-									ix < 0 ||
-									iy >= h ||
-									ix >= w {
-
+					for ic := range c.InChannels {
+						for ky := range c.KernelH {
+							for kx := range c.KernelW {
+								iy := oy*c.Stride + ky - c.Padding
+								ix := ox*c.Stride + kx - c.Padding
+								if iy < 0 || ix < 0 || iy >= h || ix >= w {
 									continue
 								}
-
-								sum +=
-									x.At(
-										b,
-										ic,
-										iy,
-										ix,
-									) *
-										c.Weight.Value.Data().At(
-											oc,
-											ic,
-											ky,
-											kx,
-										)
-
+								sum += x.At(b, ic, iy, ix) * c.Weight.Value.Data().At(oc, ic, ky, kx)
 							}
 						}
 					}
-
-					sum +=
-						c.Bias.Value.Data().At(oc)
-
-					out.Set(
-						sum,
-						b,
-						oc,
-						oy,
-						ox,
-					)
-
+					sum += c.Bias.Value.Data().At(oc)
+					out.Set(sum, b, oc, oy, ox)
 				}
 			}
 		}
 	}
-
-	return *autograd.NewVariable(
-		out,
-		true,
-	)
+	return *autograd.NewVariable(out, true)
 }
 
 // func NewConv2D(

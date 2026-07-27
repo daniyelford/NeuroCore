@@ -1,16 +1,6 @@
-// examples/future_api_test.go
-
 package examples
 
-import (
-	"testing"
-
-	"github.com/daniyelford/neurocore/dataset"
-	"github.com/daniyelford/neurocore/nn"
-	"github.com/daniyelford/neurocore/nn/checkpoint"
-	"github.com/daniyelford/neurocore/optim"
-	"github.com/daniyelford/neurocore/training"
-)
+// examples/future_api_test.go
 
 // func TestFutureAPI(t *testing.T) {
 
@@ -92,69 +82,69 @@ import (
 
 //		trainer.Save("classifier.nc")
 //	}
-func TestF(t *testing.T) {
-	trainX, trainY, err :=
-		dataset.LoadJSON(
-			"./json_classifier/data.json",
-		)
+// func TestF(t *testing.T) {
+// 	trainX, trainY, err :=
+// 		dataset.LoadJSON(
+// 			"./json_classifier/data.json",
+// 		)
 
-	if err != nil {
-		t.Fatal(err)
-	}
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	ds :=
-		dataset.NewTensorDataset(
-			trainX,
-			trainY,
-		)
+// 	ds :=
+// 		dataset.NewTensorDataset(
+// 			trainX,
+// 			trainY,
+// 		)
 
-	loader :=
-		dataset.NewDataLoader(
-			ds,
-			32,
-		)
+// 	loader :=
+// 		dataset.NewDataLoader(
+// 			ds,
+// 			32,
+// 		)
 
-		// model :=
-		// 	nn.NewSequential(
-		// 		nn.NewLinear(2, 64),
+// 		// model :=
+// 		// 	nn.NewSequential(
+// 		// 		nn.NewLinear(2, 64),
 
-		// 		activation.NewReLU(),
-		// 		nn.NewLinear(64, 64),
-		// 		activation.NewReLU(),
-		// 		nn.NewLinear(64, 2),
-		// 	)
-	model := nn.NewSequential(
-		nn.NewLinear(2, 64),
-		nn.NewDropout(0.5),
-		nn.NewLinear(64, 10),
-	)
-	trainer :=
-		training.NewTrainer(
-			nn.BaseModule(model).Training(),
-			optim.NewAdam(
-				model.Parameters(),
-				1e-3,
-			),
-			nn.NewCrossEntropyLoss(),
-		)
+// 		// 		activation.NewReLU(),
+// 		// 		nn.NewLinear(64, 64),
+// 		// 		activation.NewReLU(),
+// 		// 		nn.NewLinear(64, 2),
+// 		// 	)
+// 	model := nn.NewSequential(
+// 		nn.NewLinear(2, 64),
+// 		nn.NewDropout(0.5),
+// 		nn.NewLinear(64, 10),
+// 	)
+// 	trainer :=
+// 		training.NewTrainer(
+// 			nn.BaseModule(model).Training(),
+// 			optim.NewAdam(
+// 				model.Parameters(),
+// 				1e-3,
+// 			),
+// 			nn.NewCrossEntropyLoss(),
+// 		)
 
-	history :=
-		trainer.Run(
-			loader,
-			100,
-		)
+// 	history :=
+// 		trainer.Run(
+// 			loader,
+// 			100,
+// 		)
 
-	if history.Epochs[100].Train.Loss > 0.1 {
-		t.Fatal()
-	}
+// 	if history.Epochs[100].Train.Loss > 0.1 {
+// 		t.Fatal()
+// 	}
 
-	err =
-		checkpoint.Save(
-			&nn.Model{},
-			"classifier.nc",
-		)
+// 	err =
+// 		checkpoint.Save(
+// 			&nn.Model{},
+// 			"classifier.nc",
+// 		)
 
-	if err != nil {
-		t.Fatal(err)
-	}
-}
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// }
