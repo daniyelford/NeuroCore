@@ -1,3 +1,6 @@
+/*
+Package tensor defines multidimensional tensors.
+*/
 package tensor
 
 import (
@@ -5,10 +8,41 @@ import (
 	"math"
 
 	"github.com/daniyelford/neurocore/internal/core/backend"
+	"github.com/daniyelford/neurocore/internal/core/layout"
 	"github.com/daniyelford/neurocore/internal/core/shape"
 	"github.com/daniyelford/neurocore/internal/core/stride"
+	"github.com/daniyelford/neurocore/internal/memory"
 )
 
+func New(sh shape.Shape) Tensor {
+	size := sh.NumElements()
+	return Tensor{
+		shape:  sh,
+		stride: stride.Compute(sh, layout.RowMajor),
+		memory: memory.New(size),
+		device: backend.CPU,
+		layout: layout.RowMajor,
+	}
+}
+func From(sh shape.Shape, values []float32) Tensor {
+	t := New(sh)
+	t.memory.CopyFrom(values)
+	return t
+}
+func (t Tensor) Iterator() Iterator {
+	return Iterator{
+		tensor: t,
+		index:  0,
+	}
+}
+func (it *Iterator) HasNext() bool {
+	return it.index < it.tensor.Len()
+}
+func (it *Iterator) Next() float32 {
+	v := it.tensor.memory.At(it.index)
+	it.index++
+	return v
+}
 func binaryOp(a Tensor, b Tensor, op func(float32, float32) float32) Tensor {
 	out, ok := broadcastBinary(a, b, op)
 	if !ok {
@@ -283,10 +317,6 @@ func (t Tensor) Dot(other Tensor) (float32, bool) {
 	}
 	return sum, true
 }
-
-// ------------------------------------------------
-// Clone
-// ------------------------------------------------
 func (t Tensor) ScalarClone() Tensor {
 	out := New(t.Shape())
 	for i := 0; i < t.NumElements(); i++ {
@@ -295,10 +325,6 @@ func (t Tensor) ScalarClone() Tensor {
 	}
 	return out
 }
-
-// ------------------------------------------------
-// Compare
-// ------------------------------------------------
 func (t Tensor) ScalarEqual(other Tensor) bool {
 	if !t.Shape().Equal(other.Shape()) {
 		return false
@@ -334,7 +360,6 @@ func (t Tensor) LogSoftmaxDim(axis int) Tensor {
 	cols := dims[1]
 	out := New(t.Shape())
 	for r := 0; r < rows; r++ {
-		// max row
 		max := t.At(r, 0)
 		for c := 1; c < cols; c++ {
 			v := t.At(r, c)
@@ -342,14 +367,12 @@ func (t Tensor) LogSoftmaxDim(axis int) Tensor {
 				max = v
 			}
 		}
-		// sum(exp(x-max))
 		sum := float32(0)
 		for c := 0; c < cols; c++ {
 			v := t.At(r, c)
 			sum += float32(math.Exp(float64(v - max)))
 		}
 		logSum := float32(math.Log(float64(sum)))
-		// x - max - log(sum(exp(x-max)))
 		for c := 0; c < cols; c++ {
 			value := t.At(r, c)
 			out.Set(value-max-logSum, r, c)

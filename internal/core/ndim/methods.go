@@ -1,7 +1,30 @@
+/*
+Package ndim provides common N-dimensional vector primitives.
+
+It is shared by Shape and Stride.
+*/
 package ndim
 
-import "fmt"
+import (
+	"fmt"
+	"slices"
+)
 
+func New(values ...int) Vector {
+	out := make([]int, len(values))
+	copy(out, values)
+	return Vector{values: out}
+}
+func Zeros(n int) Vector {
+	return Vector{values: make([]int, n)}
+}
+func Ones(n int) Vector {
+	out := make([]int, n)
+	for i := range out {
+		out[i] = 1
+	}
+	return Vector{values: out}
+}
 func (v Vector) Rank() int {
 	return len(v.values)
 }
@@ -49,12 +72,13 @@ func (v Vector) String() string {
 	return fmt.Sprint(v.values)
 }
 func (v Vector) Contains(x int) bool {
-	for _, value := range v.values {
-		if value == x {
-			return true
-		}
-	}
-	return false
+	// for _, value := range v.values {
+	// 	if value == x {
+	// 		return true
+	// 	}
+	// }
+	// return false
+	return slices.Contains(v.values, x)
 }
 func (v Vector) IndexOf(x int) int {
 	for i, value := range v.values {

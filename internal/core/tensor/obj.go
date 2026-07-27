@@ -1,3 +1,6 @@
+/*
+Package tensor defines multidimensional tensors.
+*/
 package tensor
 
 import (
@@ -9,15 +12,14 @@ import (
 )
 
 type Tensor struct {
-	shape shape.Shape
-
+	shape  shape.Shape
 	stride stride.Stride
-
 	memory memory.Memory
-
 	offset int
-
 	device backend.DeviceType
-
 	layout layout.Order
+}
+type Iterator struct {
+	tensor Tensor
+	index  int
 }

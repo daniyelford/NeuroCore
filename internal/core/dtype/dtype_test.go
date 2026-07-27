@@ -2,6 +2,11 @@ package dtype
 
 import "testing"
 
+func BenchmarkName(b *testing.B) {
+	for b.Loop() {
+		_ = Float32.Name()
+	}
+}
 func TestLookup(t *testing.T) {
 
 	d, ok := ByName("float32")

@@ -1,10 +1,17 @@
+/*
+Package stride defines tensor memory strides.
+*/
 package stride
 
 import (
 	"github.com/daniyelford/neurocore/internal/core/layout"
+	"github.com/daniyelford/neurocore/internal/core/ndim"
 	"github.com/daniyelford/neurocore/internal/core/shape"
 )
 
+func New(values ...int) Stride {
+	return Stride{vector: ndim.New(values...)}
+}
 func (s Stride) Rank() int {
 	return s.vector.Rank()
 }
