@@ -762,3 +762,17 @@ func (op *BatchNorm) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
 	}
 	return []tensor.Tensor{dx, dgamma, dbeta}, nil
 }
+func NewLeakyReLU(alpha float32) *LeakyReLU {
+	return &LeakyReLU{NegativeSlope: alpha}
+}
+func (l *LeakyReLU) Forward(input *autograd.Variable) (*autograd.Variable, error) {
+	out := input.Data().Clone()
+	for i := 0; i < out.Len(); i++ {
+		v := out.FlatAt(i)
+		if v < 0 {
+			v *= l.NegativeSlope
+		}
+		out.FlatSet(i, v)
+	}
+	return autograd.NewVariable(out, input.RequiresGrad()), nil
+}

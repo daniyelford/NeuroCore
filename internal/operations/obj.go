@@ -83,3 +83,6 @@ type Conv2D struct {
 	KernelH  int
 	KernelW  int
 }
+type LeakyReLU struct {
+	NegativeSlope float32
+}

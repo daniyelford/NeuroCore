@@ -687,16 +687,6 @@ func linearToIndices(index int, sh shape.Shape) []int {
 	}
 	return indices
 }
-func indicesToLinear(indices []int, sh shape.Shape) int {
-	dims := sh.Values()
-	stride := 1
-	index := 0
-	for i := len(dims) - 1; i >= 0; i-- {
-		index += indices[i] * stride
-		stride *= dims[i]
-	}
-	return index
-}
 func broadcastIndices(targetIndices []int, src shape.Shape) []int {
 	srcDims := src.Values()
 	out := make([]int, len(srcDims))
@@ -769,7 +759,117 @@ func (t Tensor) ReduceSumAxis(axis int) Tensor {
 		panic("invalid axis")
 	}
 }
+func (t Tensor) LeakyReLU(alpha float32) Tensor {
+	out := t.Clone()
+	for i := 0; i < out.Len(); i++ {
+		v := out.FlatAt(i)
+		if v < 0 {
+			v *= alpha
+		}
+		out.FlatSet(i, v)
+	}
+	return out
+}
+func (t Tensor) LeakyReLUBackward(grad Tensor, alpha float32) Tensor {
+	out := New(t.Shape())
+	for i := 0; i < t.Len(); i++ {
+		g := grad.FlatAt(i)
+		x := t.FlatAt(i)
+		if x < 0 {
+			g *= alpha
+		}
+		out.FlatSet(i, g)
+	}
+	return out
+}
+func (t Tensor) ELU(alpha float32) Tensor {
+	out := New(t.Shape())
+	for i := 0; i < t.Len(); i++ {
+		x := t.FlatAt(i)
+		if x >= 0 {
+			out.FlatSet(i, x)
+		} else {
+			out.FlatSet(i, alpha*(float32(math.Exp(float64(x)))-1))
+		}
+	}
+	return out
+}
+func (t Tensor) GELU() Tensor {
+	out := New(t.Shape())
+	for i := 0; i < t.Len(); i++ {
+		x := float64(t.FlatAt(i))
+		y := 0.5 * x * (1 + math.Tanh(math.Sqrt(2/math.Pi)*(x+0.044715*x*x*x)))
+		out.FlatSet(i, float32(y))
+	}
+	return out
+}
+func (t Tensor) Softplus() Tensor {
+	out := New(t.Shape())
+	for i := 0; i < t.Len(); i++ {
+		x := float64(t.FlatAt(i))
+		out.FlatSet(i, float32(math.Log(1+math.Exp(x))))
+	}
+	return out
+}
+func (t Tensor) Swish() Tensor {
+	out := New(t.Shape())
+	for i := 0; i < t.Len(); i++ {
+		x := t.FlatAt(i)
+		s := 1 / (1 + float32(math.Exp(-float64(x))))
+		out.FlatSet(i, x*s)
+	}
+	return out
+}
+func (t Tensor) Mish() Tensor {
+	out := New(t.Shape())
+	for i := 0; i < t.Len(); i++ {
+		x := float64(t.FlatAt(i))
+		sp := math.Log(1 + math.Exp(x))
+		out.FlatSet(i, float32(x*math.Tanh(sp)))
+	}
+	return out
+}
+func (t Tensor) HardSigmoid() Tensor {
+	out := New(t.Shape())
+	for i := 0; i < t.Len(); i++ {
+		x := t.FlatAt(i)
+		v := x/6 + 0.5
+		if v < 0 {
+			v = 0
+		}
+		if v > 1 {
+			v = 1
+		}
+		out.FlatSet(i, v)
+	}
+	return out
+}
+func (t Tensor) HardSwish() Tensor {
+	out := New(t.Shape())
+	for i := 0; i < t.Len(); i++ {
+		x := t.FlatAt(i)
+		v := x/6 + 0.5
+		if v < 0 {
+			v = 0
+		}
+		if v > 1 {
+			v = 1
+		}
+		out.FlatSet(i, x*v)
+	}
+	return out
+}
 
+// func indicesToLinear(indices []int, sh shape.Shape) int {
+// 	dims := sh.Values()
+// 	stride := 1
+// 	index := 0
+// 	for i := len(dims) - 1; i >= 0; i-- {
+// 		index += indices[i] * stride
+// 		stride *= dims[i]
+// 	}
+// 	return index
+// }
 // func reduceMeanBackward(
 
 // 	grad tensor.Tensor,

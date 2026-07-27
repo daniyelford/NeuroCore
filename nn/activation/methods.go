@@ -63,3 +63,124 @@ func (t *Tanh) Parameters() []nn.Parameter {
 func (t *Tanh) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{}
 }
+func NewLeakyReLU(alpha float32) *LeakyReLU {
+	return &LeakyReLU{
+		BaseModule: nn.NewBaseModule("LeakyReLU"),
+		Alpha:      alpha,
+	}
+}
+func (l *LeakyReLU) Forward(input autograd.Variable) autograd.Variable {
+	out := input.Data().LeakyReLU(l.Alpha)
+	return *autograd.NewVariable(out, input.RequiresGrad())
+}
+func (l *LeakyReLU) Parameters() []nn.Parameter {
+	return nil
+}
+func (l *LeakyReLU) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewELU(alpha float32) *ELU {
+	return &ELU{
+		BaseModule: nn.NewBaseModule("ELU"),
+		Alpha:      alpha,
+	}
+}
+func (e *ELU) Forward(input autograd.Variable) autograd.Variable {
+	out := input.Data().ELU(e.Alpha)
+	return *autograd.NewVariable(out, input.RequiresGrad())
+}
+func (e *ELU) Parameters() []nn.Parameter {
+	return nil
+}
+func (e *ELU) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func (g *GELU) Forward(input autograd.Variable) autograd.Variable {
+	out := input.Data().GELU()
+	return *autograd.NewVariable(out, input.RequiresGrad())
+}
+func (g *GELU) Parameters() []nn.Parameter {
+	return nil
+}
+func (g *GELU) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewSoftplus() *Softplus {
+	return &Softplus{BaseModule: nn.NewBaseModule("Softplus")}
+}
+func (s *Softplus) Forward(input autograd.Variable) autograd.Variable {
+	out := input.Data().Softplus()
+	return *autograd.NewVariable(out, input.RequiresGrad())
+}
+func (s *Softplus) Parameters() []nn.Parameter {
+	return nil
+}
+func (s *Softplus) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewSwish() *Swish {
+	return &Swish{BaseModule: nn.NewBaseModule("Swish")}
+}
+func (s *Swish) Forward(input autograd.Variable) autograd.Variable {
+	out := input.Data().Swish()
+	return *autograd.NewVariable(out, input.RequiresGrad())
+}
+func (s *Swish) Parameters() []nn.Parameter {
+	return nil
+}
+func (s *Swish) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewMish() *Mish {
+	return &Mish{BaseModule: nn.NewBaseModule("Mish")}
+}
+func (m *Mish) Forward(input autograd.Variable) autograd.Variable {
+	out := input.Data().Mish()
+	return *autograd.NewVariable(out, input.RequiresGrad())
+}
+func (m *Mish) Parameters() []nn.Parameter {
+	return nil
+}
+func (m *Mish) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewHardSigmoid() *HardSigmoid {
+	return &HardSigmoid{BaseModule: nn.NewBaseModule("HardSigmoid")}
+}
+func (h *HardSigmoid) Forward(input autograd.Variable) autograd.Variable {
+	out := input.Data().HardSigmoid()
+	return *autograd.NewVariable(out, input.RequiresGrad())
+}
+func (h *HardSigmoid) Parameters() []nn.Parameter {
+	return nil
+}
+func (h *HardSigmoid) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewHardSwish() *HardSwish {
+	return &HardSwish{BaseModule: nn.NewBaseModule("HardSwish")}
+}
+func (h *HardSwish) Forward(input autograd.Variable) autograd.Variable {
+	out := input.Data().HardSwish()
+	return *autograd.NewVariable(out, input.RequiresGrad())
+}
+func (h *HardSwish) Parameters() []nn.Parameter {
+	return nil
+}
+func (h *HardSwish) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewSoftmax(axis int) *Softmax {
+	return &Softmax{BaseModule: nn.NewBaseModule("Softmax"), Axis: axis}
+}
+func (s *Softmax) Forward(input autograd.Variable) autograd.Variable {
+	out := input.Data().SoftmaxDim(s.Axis)
+	return *autograd.NewVariable(out, input.RequiresGrad())
+}
+func NewLogSoftmax(axis int) *LogSoftmax {
+	return &LogSoftmax{BaseModule: nn.NewBaseModule("LogSoftmax"), Axis: axis}
+}
+func (l *LogSoftmax) Forward(input autograd.Variable) autograd.Variable {
+	out := input.Data().LogSoftmaxDim(l.Axis)
+	return *autograd.NewVariable(out, input.RequiresGrad())
+}
