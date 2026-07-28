@@ -6,8 +6,6 @@ package nn
 import (
 	"encoding/json"
 	"fmt"
-	"math"
-	"math/rand"
 	"os"
 
 	"github.com/daniyelford/neurocore/internal/autograd"
@@ -257,46 +255,71 @@ func (e *Embedding) Forward(input *autograd.Variable) *autograd.Variable {
 	}
 	return autograd.NewVariable(out, input.RequiresGrad())
 }
-func DropoutNew(
-	p float32) *Dropout {
-	if p < 0 {
-		p = 0
-	}
-	if p > 1 {
-		p = 1
-	}
+
+//	func NewDropout(p float32) *Dropout {
+//		return DropoutNew(p)
+//	}
+func NewDropout(p float32) *Dropout {
+
 	return &Dropout{
-		BaseModule:  NewBaseModule("Dropout"),
-		Probability: p,
+		BaseModule: NewBaseModule("Dropout"),
+		P:          p,
+		Training:   true,
 	}
 }
+func (d *Dropout) Forward(
+	input *autograd.Variable,
+) *autograd.Variable {
+
+	op := operations.NewDropout(
+		d.P,
+		d.Training,
+	)
+
+	out, err := op.Forward(input)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+
+//	func (d *Dropout) Forward(input *autograd.Variable) *autograd.Variable {
+//		if !d.Training() {
+//			return input
+//		}
+//		data := input.Data()
+//		out := data.Clone()
+//		scale := float32(1.0)
+//		if d.Probability < 1 {
+//			scale = 1 / (1 - d.Probability)
+//		}
+//		for i := 0; i < out.Len(); i++ {
+//			if rand.Float32() < d.Probability {
+//				out.FlatSet(i, 0)
+//			} else {
+//				out.FlatSet(i, out.FlatAt(i)*scale)
+//			}
+//		}
+//		return autograd.NewVariable(out, input.RequiresGrad())
+//	}
 func (d *Dropout) Parameters() []Parameter {
 	return nil
 }
-func (d Dropout) Children() []Module {
-	return nil
-}
+
+//	func (d Dropout) Children() []Module {
+//		return nil
+//	}
 func (d *Dropout) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{}
 }
-func (d *Dropout) Forward(input *autograd.Variable) *autograd.Variable {
-	if !d.Training() {
-		return input
-	}
-	data := input.Data()
-	out := data.Clone()
-	scale := float32(1.0)
-	if d.Probability < 1 {
-		scale = 1 / (1 - d.Probability)
-	}
-	for i := 0; i < out.Len(); i++ {
-		if rand.Float32() < d.Probability {
-			out.FlatSet(i, 0)
-		} else {
-			out.FlatSet(i, out.FlatAt(i)*scale)
-		}
-	}
-	return autograd.NewVariable(out, input.RequiresGrad())
+func (d *Dropout) Train() {
+	d.Training = true
+}
+
+func (d *Dropout) Eval() {
+	d.Training = false
 }
 func NewCrossEntropyLoss() *CrossEntropyLoss {
 	return &CrossEntropyLoss{BaseModule: NewBaseModule("CrossEntropyLoss")}
@@ -374,9 +397,6 @@ func (b *BatchNorm2D) Parameters() []Parameter {
 func (b *BatchNorm2D) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{"gamma": b.Gamma.Value, "beta": b.Beta.Value}
 }
-func NewDropout(p float32) *Dropout {
-	return DropoutNew(p)
-}
 func NewBaseModule(name string) BaseModule {
 	return BaseModule{training: true, name: name}
 }
@@ -412,27 +432,46 @@ func LayerNormNew(features int) LayerNorm {
 		Eps:        1e-5,
 	}
 }
-func (l LayerNorm) Forward(input *autograd.Variable) *autograd.Variable {
-	x := input.Data()
-	var mean float32
-	for i := 0; i < x.Len(); i++ {
-		mean += x.FlatAt(i)
+func (l *LayerNorm) Forward(
+	input *autograd.Variable,
+) *autograd.Variable {
+
+	op := operations.NewLayerNorm(l.Eps)
+
+	out, err := op.Forward(
+		input,
+		l.Gamma.Value,
+		l.Beta.Value,
+	)
+
+	if err != nil {
+		panic(err)
 	}
-	mean /= float32(x.Len())
-	var variance float32
-	for i := 0; i < x.Len(); i++ {
-		diff := x.FlatAt(i) - mean
-		variance += diff * diff
-	}
-	variance /= float32(x.Len())
-	out := tensor.New(x.Shape())
-	for i := 0; i < x.Len(); i++ {
-		n := (x.FlatAt(i) - mean) / float32(math.Sqrt(float64(variance+l.Eps)))
-		v := n*l.Gamma.Value.Data().FlatAt(i) + l.Beta.Value.Data().FlatAt(i)
-		out.FlatSet(i, v)
-	}
-	return autograd.NewVariable(out, true)
+
+	return out
 }
+
+//	func (l LayerNorm) Forward(input *autograd.Variable) *autograd.Variable {
+//		x := input.Data()
+//		var mean float32
+//		for i := 0; i < x.Len(); i++ {
+//			mean += x.FlatAt(i)
+//		}
+//		mean /= float32(x.Len())
+//		var variance float32
+//		for i := 0; i < x.Len(); i++ {
+//			diff := x.FlatAt(i) - mean
+//			variance += diff * diff
+//		}
+//		variance /= float32(x.Len())
+//		out := tensor.New(x.Shape())
+//		for i := 0; i < x.Len(); i++ {
+//			n := (x.FlatAt(i) - mean) / float32(math.Sqrt(float64(variance+l.Eps)))
+//			v := n*l.Gamma.Value.Data().FlatAt(i) + l.Beta.Value.Data().FlatAt(i)
+//			out.FlatSet(i, v)
+//		}
+//		return autograd.NewVariable(out, true)
+//	}
 func (l LayerNorm) Parameters() []Parameter {
 	return []Parameter{l.Gamma, l.Beta}
 }

@@ -84,11 +84,6 @@ type Embedding struct {
 	EmbeddingDim  int
 	Weight        Parameter
 }
-type Dropout struct {
-	BaseModule
-
-	Probability float32
-}
 type CrossEntropyLoss struct {
 	BaseModule
 
@@ -134,4 +129,11 @@ type LayerNorm struct {
 	Gamma Parameter
 	Beta  Parameter
 	Eps   float32
+}
+type Dropout struct {
+	BaseModule
+
+	P float32
+
+	Training bool
 }

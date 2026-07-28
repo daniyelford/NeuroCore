@@ -107,7 +107,6 @@ func NewGELU() *GELU {
 		BaseModule: nn.NewBaseModule("GELU"),
 	}
 }
-
 func (g *GELU) Forward(input *autograd.Variable) *autograd.Variable {
 	op := operations.GELU{}
 	out, err := op.Forward(input)
@@ -133,11 +132,6 @@ func (s *Softplus) Forward(input *autograd.Variable) *autograd.Variable {
 	}
 	return out
 }
-
-//	func (s *Softplus) Forward(input *autograd.Variable) *autograd.Variable {
-//		out := input.Data().Softplus()
-//		return autograd.NewVariable(out, input.RequiresGrad())
-//	}
 func (s *Softplus) Parameters() []nn.Parameter {
 	return nil
 }
@@ -256,32 +250,3 @@ func (l *LogSoftmax) Forward(input *autograd.Variable) *autograd.Variable {
 
 	return out
 }
-
-//	func (g *GELU) Forward(input *autograd.Variable) *autograd.Variable {
-//		out := input.Data().GELU()
-//		return autograd.NewVariable(out, input.RequiresGrad())
-//	}
-//	func (s *Swish) Forward(input *autograd.Variable) *autograd.Variable {
-//		out := input.Data().Swish()
-//		return autograd.NewVariable(out, input.RequiresGrad())
-//	}
-//	func (m *Mish) Forward(input *autograd.Variable) *autograd.Variable {
-//		out := input.Data().Mish()
-//		return autograd.NewVariable(out, input.RequiresGrad())
-//	}
-//	func (h *HardSigmoid) Forward(input *autograd.Variable) *autograd.Variable {
-//		out := input.Data().HardSigmoid()
-//		return autograd.NewVariable(out, input.RequiresGrad())
-//	}
-//	func (h *HardSwish) Forward(input *autograd.Variable) *autograd.Variable {
-//		out := input.Data().HardSwish()
-//		return autograd.NewVariable(out, input.RequiresGrad())
-//	}
-//	func (s *Softmax) Forward(input *autograd.Variable) *autograd.Variable {
-//		out := input.Data().SoftmaxDim(s.Axis)
-//		return autograd.NewVariable(out, input.RequiresGrad())
-//	}
-// func (l *LogSoftmax) Forward(input *autograd.Variable) *autograd.Variable {
-// 	out := input.Data().LogSoftmaxDim(l.Axis)
-// 	return autograd.NewVariable(out, input.RequiresGrad())
-// }

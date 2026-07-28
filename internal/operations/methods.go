@@ -3,6 +3,7 @@ package operations
 import (
 	"errors"
 	"math"
+	"math/rand/v2"
 
 	"github.com/daniyelford/neurocore/internal/autograd"
 	"github.com/daniyelford/neurocore/internal/core/shape"
@@ -694,7 +695,12 @@ func (op *BatchNorm) Forward(inputs ...*autograd.Variable) (*autograd.Variable, 
 	}
 	op.Mean = tensor.New(shape.New(channels))
 	op.Variance = tensor.New(shape.New(channels))
-	v := autograd.NewVariable(out, x.RequiresGrad() || gamma.RequiresGrad() || beta.RequiresGrad())
+	for c := range channels {
+		op.Mean.Set(mean[c], c)
+		op.Variance.Set(variance[c], c)
+	}
+	requiresGrad := x.RequiresGrad() || gamma.RequiresGrad() || beta.RequiresGrad()
+	v := autograd.NewVariable(out, requiresGrad)
 	v.Node().Parents = []*autograd.Node{x.Node(), gamma.Node(), beta.Node()}
 	v.Node().Op = op
 	op.SetOutput(v)
@@ -703,9 +709,10 @@ func (op *BatchNorm) Forward(inputs ...*autograd.Variable) (*autograd.Variable, 
 func (op *BatchNorm) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
 	x := op.Input(0).Data()
 	gamma := op.Input(1).Data()
+	beta := op.Input(2).Data()
 	dx := tensor.New(x.Shape())
 	dgamma := tensor.New(gamma.Shape())
-	dbeta := tensor.New(gamma.Shape())
+	dbeta := tensor.New(beta.Shape())
 	dims := x.Shape().Values()
 	batch := dims[0]
 	channels := dims[1]
@@ -1020,4 +1027,397 @@ func (op *HardSwish) Forward(inputs ...*autograd.Variable) (*autograd.Variable, 
 func (op *HardSwish) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
 	dx := op.Input(0).Data().HardSwishBackward(grad)
 	return []tensor.Tensor{dx}, nil
+}
+func NewLayerNorm(eps float32) *LayerNorm {
+	return &LayerNorm{
+		Eps: eps,
+	}
+}
+func (op *LayerNorm) Name() string {
+	return "LayerNorm"
+}
+func (op *LayerNorm) Forward(
+	inputs ...*autograd.Variable,
+) (*autograd.Variable, error) {
+
+	if len(inputs) != 3 {
+		return nil, errors.New("layernorm requires input gamma beta")
+	}
+
+	x := inputs[0]
+	gamma := inputs[1]
+	beta := inputs[2]
+
+	op.Save(
+		x,
+		gamma,
+		beta,
+	)
+
+	out,
+		mean,
+		variance :=
+		x.Data().LayerNorm(
+			gamma.Data(),
+			beta.Data(),
+			op.Eps,
+		)
+
+	op.Mean = mean
+	op.Variance = variance
+
+	v := autograd.NewVariable(
+		out,
+		x.RequiresGrad() ||
+			gamma.RequiresGrad() ||
+			beta.RequiresGrad(),
+	)
+
+	v.Node().Parents = []*autograd.Node{
+		x.Node(),
+		gamma.Node(),
+		beta.Node(),
+	}
+
+	v.Node().Op = op
+
+	op.SetOutput(v)
+
+	return v, nil
+}
+func (op *LayerNorm) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	x := op.Input(0).Data()
+	gamma := op.Input(1).Data()
+
+	dx,
+		dgamma,
+		dbeta :=
+		x.LayerNormBackward(
+			grad,
+			gamma,
+			op.Mean,
+			op.Variance,
+			op.Eps,
+		)
+
+	return []tensor.Tensor{
+		dx,
+		dgamma,
+		dbeta,
+	}, nil
+}
+func NewEmbedding(
+	numEmbeddings int,
+	embeddingDim int,
+) *Embedding {
+
+	return &Embedding{
+		NumEmbeddings: numEmbeddings,
+		EmbeddingDim:  embeddingDim,
+	}
+}
+func (op *Embedding) Name() string {
+	return "Embedding"
+}
+func (op *Embedding) Forward(
+	inputs ...*autograd.Variable,
+) (*autograd.Variable, error) {
+
+	if len(inputs) != 2 {
+		return nil, errors.New("embedding requires indices and weight")
+	}
+
+	indices := inputs[0]
+	weight := inputs[1]
+
+	op.Save(indices, weight)
+
+	idx, err := indices.Data().Indices()
+	if err != nil {
+		return nil, err
+	}
+
+	out := tensor.New(
+		shape.New(
+			len(idx),
+			weight.Data().Shape().Values()[1],
+		),
+	)
+
+	for i, id := range idx {
+
+		for j := 0; j < weight.Data().Shape().Values()[1]; j++ {
+
+			out.Set(
+				weight.Data().At(id, j),
+				i,
+				j,
+			)
+
+		}
+
+	}
+
+	v := autograd.NewVariable(
+		out,
+		weight.RequiresGrad(),
+	)
+
+	v.Node().Parents = []*autograd.Node{
+		indices.Node(),
+		weight.Node(),
+	}
+
+	v.Node().Op = op
+
+	op.SetOutput(v)
+
+	return v, nil
+}
+func (op *Embedding) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	indices := op.Input(0).Data()
+
+	weight := op.Input(1).Data()
+
+	dWeight := tensor.New(weight.Shape())
+
+	idx, err := indices.Indices()
+	if err != nil {
+		return nil, err
+	}
+
+	embDim := weight.Shape().Values()[1]
+
+	for i, id := range idx {
+
+		for j := 0; j < embDim; j++ {
+
+			v := dWeight.At(id, j)
+
+			dWeight.Set(
+				v+grad.At(i, j),
+				id,
+				j,
+			)
+
+		}
+
+	}
+
+	return []tensor.Tensor{
+		tensor.Tensor{},
+		dWeight,
+	}, nil
+}
+func (op *Dropout) Name() string {
+	return "Dropout"
+}
+func NewDropout(
+	p float32,
+	training bool,
+) *Dropout {
+
+	return &Dropout{
+		P:        p,
+		Training: training,
+	}
+}
+func (op *Dropout) Forward(
+	inputs ...*autograd.Variable,
+) (*autograd.Variable, error) {
+
+	if len(inputs) != 1 {
+		return nil, errors.New("dropout requires one input")
+	}
+
+	x := inputs[0]
+
+	op.Save(x)
+
+	// حالت inference
+	if !op.Training {
+
+		v := autograd.NewVariable(
+			x.Data().Clone(),
+			x.RequiresGrad(),
+		)
+
+		v.Node().Parents = []*autograd.Node{x.Node()}
+		v.Node().Op = op
+
+		op.SetOutput(v)
+
+		return v, nil
+	}
+
+	mask := tensor.New(x.Data().Shape())
+
+	scale := float32(1.0 / (1.0 - op.P))
+
+	for i := 0; i < mask.Len(); i++ {
+
+		if rand.Float32() >= op.P {
+
+			mask.FlatSet(i, scale)
+
+		}
+	}
+
+	op.mask = mask
+
+	out, _ := x.Data().MulBroadcast(mask)
+
+	v := autograd.NewVariable(
+		out,
+		x.RequiresGrad(),
+	)
+
+	v.Node().Parents = []*autograd.Node{x.Node()}
+	v.Node().Op = op
+
+	op.SetOutput(v)
+
+	return v, nil
+}
+func (op *Dropout) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	if !op.Training {
+
+		return []tensor.Tensor{
+			grad,
+		}, nil
+	}
+
+	dx, _ := grad.MulBroadcast(op.mask)
+
+	return []tensor.Tensor{
+		dx,
+	}, nil
+}
+func NewRNN(
+	inputSize int,
+	hiddenSize int,
+	activation string,
+) *RNN {
+
+	return &RNN{
+		InputSize:  inputSize,
+		HiddenSize: hiddenSize,
+		Activation: activation,
+	}
+}
+func (op *RNN) Name() string {
+	return "RNN"
+}
+func (op *RNN) Forward(
+	inputs ...*autograd.Variable,
+) (*autograd.Variable, error) {
+
+	if len(inputs) != 5 {
+		return nil, errors.New(
+			"rnn requires x, hPrev, Wx, Wh, bias",
+		)
+	}
+
+	x := inputs[0]
+	hPrev := inputs[1]
+	Wx := inputs[2]
+	Wh := inputs[3]
+	bias := inputs[4]
+
+	op.Save(
+		x,
+		hPrev,
+		Wx,
+		Wh,
+		bias,
+	)
+
+	xh, ok := x.Data().MatMul(
+		Wx.Data(),
+	)
+	if !ok {
+		return nil, errors.New("x @ Wx failed")
+	}
+
+	hh, ok := hPrev.Data().MatMul(
+		Wh.Data(),
+	)
+	if !ok {
+		return nil, errors.New("hPrev @ Wh failed")
+	}
+
+	sum := xh.Add(hh)
+
+	sum, ok = sum.AddBroadcast(
+		bias.Data(),
+	)
+	if !ok {
+		return nil, errors.New("bias broadcast failed")
+	}
+
+	switch op.Activation {
+
+	case "relu":
+
+		sum = sum.ReLU()
+
+	default:
+
+		sum = sum.Tanh()
+
+	}
+
+	out := autograd.NewVariable(
+		sum,
+		true,
+	)
+
+	out.Node().Parents = []*autograd.Node{
+		x.Node(),
+		hPrev.Node(),
+		Wx.Node(),
+		Wh.Node(),
+		bias.Node(),
+	}
+
+	out.Node().Op = op
+
+	op.SetOutput(out)
+
+	return out, nil
+}
+func (op *RNN) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	x := op.Input(0).Data()
+	hPrev := op.Input(1).Data()
+	Wx := op.Input(2).Data()
+	Wh := op.Input(3).Data()
+	bias := op.Input(4).Data()
+
+	dx := tensor.New(x.Shape())
+	dh := tensor.New(hPrev.Shape())
+	dWx := tensor.New(Wx.Shape())
+	dWh := tensor.New(Wh.Shape())
+	db := tensor.New(bias.Shape())
+
+	_ = grad
+
+	return []tensor.Tensor{
+		dx,
+		dh,
+		dWx,
+		dWh,
+		db,
+	}, nil
 }

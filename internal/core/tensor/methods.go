@@ -1031,6 +1031,171 @@ func (t Tensor) HardSwishBackward(grad Tensor) Tensor {
 
 	return out
 }
+func (t Tensor) BatchNorm(
+	gamma Tensor,
+	beta Tensor,
+	eps float32,
+) Tensor {
+
+	dims := t.Shape().Values()
+
+	if len(dims) != 2 {
+		panic("BatchNorm supports only 2D tensors")
+	}
+
+	batch := dims[0]
+	features := dims[1]
+
+	out := New(t.Shape())
+
+	for f := 0; f < features; f++ {
+
+		mean := float32(0)
+
+		for b := 0; b < batch; b++ {
+			mean += t.At(b, f)
+		}
+
+		mean /= float32(batch)
+
+		variance := float32(0)
+
+		for b := 0; b < batch; b++ {
+
+			d := t.At(b, f) - mean
+			variance += d * d
+		}
+
+		variance /= float32(batch)
+
+		invStd := float32(1.0 / math.Sqrt(float64(variance+eps)))
+
+		for b := 0; b < batch; b++ {
+
+			xhat := (t.At(b, f) - mean) * invStd
+
+			y := xhat*gamma.FlatAt(f) + beta.FlatAt(f)
+
+			out.Set(y, b, f)
+		}
+	}
+
+	return out
+}
+func (t Tensor) BatchNormBackward(
+	grad Tensor,
+) Tensor {
+
+	return grad.Clone()
+}
+func (t Tensor) LayerNorm(
+	gamma Tensor,
+	beta Tensor,
+	eps float32,
+) (Tensor, Tensor, Tensor) {
+
+	out := New(t.Shape())
+
+	mean := Scalar(0)
+	variance := Scalar(0)
+
+	var m float32
+
+	for i := 0; i < t.Len(); i++ {
+		m += t.FlatAt(i)
+	}
+
+	m /= float32(t.Len())
+
+	mean.FlatSet(0, m)
+
+	var v float32
+
+	for i := 0; i < t.Len(); i++ {
+		d := t.FlatAt(i) - m
+		v += d * d
+	}
+
+	v /= float32(t.Len())
+
+	variance.FlatSet(0, v)
+
+	denom := float32(math.Sqrt(float64(v + eps)))
+
+	for i := 0; i < t.Len(); i++ {
+
+		norm := (t.FlatAt(i) - m) / denom
+
+		out.FlatSet(
+			i,
+			norm*gamma.FlatAt(i)+beta.FlatAt(i),
+		)
+	}
+
+	return out, mean, variance
+}
+func (t Tensor) LayerNormBackward(
+	grad Tensor,
+	gamma Tensor,
+	mean Tensor,
+	variance Tensor,
+	eps float32,
+) (Tensor, Tensor, Tensor) {
+
+	dx := New(t.Shape())
+	dgamma := New(gamma.Shape())
+	dbeta := New(gamma.Shape())
+
+	m := mean.FlatAt(0)
+	v := variance.FlatAt(0)
+
+	std := float32(math.Sqrt(float64(v + eps)))
+
+	n := float32(t.Len())
+
+	sumDy := float32(0)
+	sumDyNorm := float32(0)
+
+	for i := 0; i < t.Len(); i++ {
+
+		norm := (t.FlatAt(i) - m) / std
+
+		dy := grad.FlatAt(i)
+
+		sumDy += dy
+
+		sumDyNorm += dy * norm
+
+		dbeta.FlatSet(
+			i,
+			dy,
+		)
+
+		dgamma.FlatSet(
+			i,
+			dy*norm,
+		)
+	}
+
+	for i := 0; i < t.Len(); i++ {
+
+		norm := (t.FlatAt(i) - m) / std
+
+		dy := grad.FlatAt(i)
+
+		g := gamma.FlatAt(i)
+
+		value :=
+			(g / std) *
+				(n*dy -
+					sumDy -
+					norm*sumDyNorm) / n
+
+		dx.FlatSet(i, value)
+	}
+
+	return dx, dgamma, dbeta
+}
 
 //	func (t Tensor) HardSigmoidBackward(grad Tensor) Tensor {
 //		out := grad.Clone()

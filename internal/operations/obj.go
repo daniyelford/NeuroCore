@@ -117,3 +117,26 @@ type HardSigmoid struct {
 type HardSwish struct {
 	Base
 }
+type Dropout struct {
+	Base
+	P        float32
+	Training bool
+	mask     tensor.Tensor
+}
+type LayerNorm struct {
+	Base
+	Eps      float32
+	Mean     tensor.Tensor
+	Variance tensor.Tensor
+}
+type Embedding struct {
+	Base
+	NumEmbeddings int
+	EmbeddingDim  int
+}
+type RNN struct {
+	Base
+	InputSize  int
+	HiddenSize int
+	Activation string
+}
