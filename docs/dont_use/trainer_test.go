@@ -84,8 +84,8 @@ func TestTrainerStep(
 
 	lossValue :=
 		trainer.TrainStep(
-			*input,
-			*target,
+			input,
+			target,
 		)
 
 	if lossValue <= 0 {

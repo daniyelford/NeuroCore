@@ -29,8 +29,8 @@ func TestMSE(t *testing.T) {
 	l := nn.NewMSELoss()
 
 	out := l.Forward(
-		*autograd.NewVariable(p, false),
-		*autograd.NewVariable(tg, false),
+		autograd.NewVariable(p, false),
+		autograd.NewVariable(tg, false),
 	)
 
 	if out.Data().At(0) != 2.5 {
@@ -50,7 +50,7 @@ func TestLinear(
 			2,
 		)
 
-	x := *autograd.NewVariable(
+	x := autograd.NewVariable(
 		tensor.New(
 			shape.New(1, 3),
 		),
@@ -212,7 +212,7 @@ func TestSequential(t *testing.T) {
 		false,
 	)
 
-	y := model.Forward(*x)
+	y := model.Forward(x)
 
 	if y.Data().Shape().Values()[1] != 2 {
 		t.Fatal()
@@ -246,7 +246,7 @@ func TestMaxPool2D(t *testing.T) {
 
 	out :=
 		pool.Forward(
-			*autograd.NewVariable(
+			autograd.NewVariable(
 				x,
 				false,
 			),
@@ -285,7 +285,7 @@ func TestLayerNorm(t *testing.T) {
 
 	out :=
 		l.Forward(
-			*v,
+			v,
 		)
 
 	if out.Data().Len() != 4 {
@@ -336,7 +336,7 @@ func TestFlatten(t *testing.T) {
 
 	out :=
 		f.Forward(
-			*autograd.NewVariable(
+			autograd.NewVariable(
 				x,
 				false,
 			),
@@ -446,7 +446,7 @@ func TestEmbeddingForward(t *testing.T) {
 
 	out :=
 		e.Forward(
-			*v,
+			v,
 		)
 
 	s :=
@@ -492,7 +492,7 @@ func TestEmbeddingLookup(t *testing.T) {
 
 	out :=
 		e.Forward(
-			*autograd.NewVariable(
+			autograd.NewVariable(
 				input,
 				false,
 			),
@@ -688,8 +688,8 @@ func TestCrossEntropyLoss(
 
 	out :=
 		lossFn.Forward(
-			*logits,
-			*target,
+			logits,
+			target,
 		)
 
 	if out.Data().NumElements() != 1 {
@@ -701,7 +701,7 @@ func TestCrossEntropyLoss(
 	}
 
 	autograd.Backward(
-		&out,
+		out,
 	)
 
 	if logits.Grad().NumElements() != 6 {
@@ -736,7 +736,7 @@ func TestConv2DStride(t *testing.T) {
 
 	out :=
 		conv.Forward(
-			*autograd.NewVariable(
+			autograd.NewVariable(
 				x,
 				false,
 			),
@@ -779,7 +779,7 @@ func TestConv2DSamePadding(t *testing.T) {
 
 	out :=
 		conv.Forward(
-			*autograd.NewVariable(
+			autograd.NewVariable(
 				x,
 				false,
 			),
@@ -828,7 +828,7 @@ func TestConv2DGraph(t *testing.T) {
 
 	out :=
 		conv.Forward(
-			*input,
+			input,
 		)
 
 	if out.Node().Op == nil {
@@ -993,7 +993,7 @@ func TestDropoutTrain(t *testing.T) {
 
 	out :=
 		d.Forward(
-			*v,
+			v,
 		)
 
 	if out.Data().Len() != 10 {
@@ -1026,7 +1026,7 @@ func TestDropoutEval(t *testing.T) {
 
 	out :=
 		d.Forward(
-			*v,
+			v,
 		)
 
 	if !out.Data().Shape().Equal(
@@ -1101,7 +1101,7 @@ func TestConv2DForward(t *testing.T) {
 
 	out :=
 		conv.Forward(
-			*input,
+			input,
 		)
 
 	expected :=

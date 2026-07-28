@@ -762,17 +762,262 @@ func (op *BatchNorm) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
 	}
 	return []tensor.Tensor{dx, dgamma, dbeta}, nil
 }
+func (op *LeakyReLU) Name() string {
+	return "LeakyReLU"
+}
 func NewLeakyReLU(alpha float32) *LeakyReLU {
 	return &LeakyReLU{NegativeSlope: alpha}
 }
-func (l *LeakyReLU) Forward(input *autograd.Variable) (*autograd.Variable, error) {
-	out := input.Data().Clone()
-	for i := 0; i < out.Len(); i++ {
-		v := out.FlatAt(i)
-		if v < 0 {
-			v *= l.NegativeSlope
-		}
-		out.FlatSet(i, v)
+func (op *LeakyReLU) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+	if len(inputs) != 1 {
+		return nil, errors.New("leakyrelu requires exactly one input")
 	}
-	return autograd.NewVariable(out, input.RequiresGrad()), nil
+	x := inputs[0]
+	op.Save(x)
+	out := x.Data().LeakyReLU(op.NegativeSlope)
+	v := autograd.NewVariable(out, x.RequiresGrad())
+	v.Node().Parents = []*autograd.Node{x.Node()}
+	v.Node().Op = op
+	op.SetOutput(v)
+	return v, nil
+}
+func (op *LeakyReLU) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	input := op.Input(0).Data()
+
+	out := input.LeakyReLUBackward(
+		grad,
+		op.NegativeSlope,
+	)
+
+	return []tensor.Tensor{out}, nil
+}
+func (op *ELU) Name() string {
+	return "ELU"
+}
+func (op *ELU) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+
+	if len(inputs) != 1 {
+		return nil, errors.New("elu requires exactly one input")
+	}
+
+	x := inputs[0]
+
+	op.Save(x)
+
+	out := x.Data().ELU(op.Alpha)
+
+	v := autograd.NewVariable(
+		out,
+		x.RequiresGrad(),
+	)
+
+	v.Node().Parents = []*autograd.Node{x.Node()}
+	v.Node().Op = op
+
+	op.SetOutput(v)
+
+	return v, nil
+}
+func (op *ELU) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
+	output := op.Output().Data()
+	dx := output.ELUBackwardFromOutput(grad, op.Alpha)
+	return []tensor.Tensor{dx}, nil
+}
+func (op *Softplus) Name() string {
+	return "Softplus"
+}
+func (op *Softplus) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+
+	if len(inputs) != 1 {
+		return nil, errors.New("softplus requires one input")
+	}
+
+	x := inputs[0]
+
+	op.Save(x)
+
+	out := x.Data().Softplus()
+
+	v := autograd.NewVariable(out, x.RequiresGrad())
+
+	v.Node().Parents = []*autograd.Node{x.Node()}
+	v.Node().Op = op
+
+	op.SetOutput(v)
+
+	return v, nil
+}
+func (op *Softplus) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	dx := op.Input(0).
+		Data().
+		SoftplusBackward(grad)
+
+	return []tensor.Tensor{dx}, nil
+}
+func NewSoftmax(axis int) *Softmax {
+	return &Softmax{
+		Axis: axis,
+	}
+}
+func (op *Softmax) Name() string {
+	return "Softmax"
+}
+func (op *Softmax) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+
+	if len(inputs) != 1 {
+		return nil, errors.New("softmax requires one input")
+	}
+
+	x := inputs[0]
+
+	op.Save(x)
+
+	out := x.Data().SoftmaxDim(op.Axis)
+
+	v := autograd.NewVariable(
+		out,
+		x.RequiresGrad(),
+	)
+
+	v.Node().Parents = []*autograd.Node{x.Node()}
+	v.Node().Op = op
+
+	op.SetOutput(v)
+
+	return v, nil
+}
+func (op *Softmax) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
+	out := op.Output().Data()
+	dx := out.SoftmaxBackward(grad, op.Axis)
+	return []tensor.Tensor{dx}, nil
+}
+func NewLogSoftmax(axis int) *LogSoftmax {
+	return &LogSoftmax{Axis: axis}
+}
+func (op *LogSoftmax) Name() string {
+	return "LogSoftmax"
+}
+func (op *LogSoftmax) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+	if len(inputs) != 1 {
+		return nil, errors.New("logsoftmax requires one input")
+	}
+	x := inputs[0]
+	op.Save(x)
+	out := x.Data().LogSoftmaxDim(op.Axis)
+	v := autograd.NewVariable(out, x.RequiresGrad())
+	v.Node().Parents = []*autograd.Node{x.Node()}
+	v.Node().Op = op
+	op.SetOutput(v)
+	return v, nil
+}
+func (op *LogSoftmax) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
+	out := op.Output().Data()
+	dx := out.LogSoftmaxBackward(grad, op.Axis)
+	return []tensor.Tensor{dx}, nil
+}
+func (op *GELU) Name() string {
+	return "GELU"
+}
+func (op *GELU) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+	if len(inputs) != 1 {
+		return nil, errors.New("gelu requires one input")
+	}
+	x := inputs[0]
+	op.Save(x)
+	out := x.Data().GELU()
+	v := autograd.NewVariable(out, x.RequiresGrad())
+	v.Node().Parents = []*autograd.Node{x.Node()}
+	v.Node().Op = op
+	op.SetOutput(v)
+	return v, nil
+}
+func (op *GELU) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
+	dx := op.Input(0).Data().GELUBackward(grad)
+	return []tensor.Tensor{dx}, nil
+}
+func (op *Swish) Name() string {
+	return "Swish"
+}
+func (op *Swish) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+	if len(inputs) != 1 {
+		return nil, errors.New("swish requires one input")
+	}
+	x := inputs[0]
+	op.Save(x)
+	out := x.Data().Swish()
+	v := autograd.NewVariable(out, x.RequiresGrad())
+	v.Node().Parents = []*autograd.Node{x.Node()}
+	v.Node().Op = op
+	op.SetOutput(v)
+	return v, nil
+}
+func (op *Swish) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
+	dx := op.Input(0).Data().SwishBackward(grad)
+	return []tensor.Tensor{dx}, nil
+}
+func (op *Mish) Name() string {
+	return "Mish"
+}
+func (op *Mish) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+	if len(inputs) != 1 {
+		return nil, errors.New("mish requires one input")
+	}
+	x := inputs[0]
+	op.Save(x)
+	out := x.Data().Mish()
+	v := autograd.NewVariable(out, x.RequiresGrad())
+	v.Node().Parents = []*autograd.Node{x.Node()}
+	v.Node().Op = op
+	op.SetOutput(v)
+	return v, nil
+}
+func (op *Mish) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
+	dx := op.Input(0).Data().MishBackward(grad)
+	return []tensor.Tensor{dx}, nil
+}
+func (op *HardSigmoid) Name() string {
+	return "HardSigmoid"
+}
+func (op *HardSigmoid) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+	if len(inputs) != 1 {
+		return nil, errors.New("hardsigmoid requires one input")
+	}
+	x := inputs[0]
+	op.Save(x)
+	out := x.Data().HardSigmoid()
+	v := autograd.NewVariable(out, x.RequiresGrad())
+	v.Node().Parents = []*autograd.Node{x.Node()}
+	v.Node().Op = op
+	op.SetOutput(v)
+	return v, nil
+}
+func (op *HardSigmoid) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
+	dx := op.Input(0).Data().HardSigmoidBackward(grad)
+	return []tensor.Tensor{dx}, nil
+}
+func (op *HardSwish) Name() string {
+	return "HardSwish"
+}
+func (op *HardSwish) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+	if len(inputs) != 1 {
+		return nil, errors.New("hardswish requires one input")
+	}
+	x := inputs[0]
+	op.Save(x)
+	out := x.Data().HardSwish()
+	v := autograd.NewVariable(out, x.RequiresGrad())
+	v.Node().Parents = []*autograd.Node{x.Node()}
+	v.Node().Op = op
+	op.SetOutput(v)
+	return v, nil
+}
+func (op *HardSwish) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
+	dx := op.Input(0).Data().HardSwishBackward(grad)
+	return []tensor.Tensor{dx}, nil
 }

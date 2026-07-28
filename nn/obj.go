@@ -49,7 +49,7 @@ type MSELoss struct {
 	BaseModule
 }
 type Module interface {
-	Forward(input autograd.Variable) autograd.Variable
+	Forward(input *autograd.Variable) *autograd.Variable
 	Parameters() []Parameter
 	StateDict() map[string]*autograd.Variable
 	Name() string

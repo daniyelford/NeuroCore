@@ -84,5 +84,36 @@ type Conv2D struct {
 	KernelW  int
 }
 type LeakyReLU struct {
+	Base
 	NegativeSlope float32
+}
+type ELU struct {
+	Base
+	Alpha float32
+}
+type Softplus struct {
+	Base
+}
+type Softmax struct {
+	Base
+	Axis int
+}
+type Mish struct {
+	Base
+}
+type LogSoftmax struct {
+	Base
+	Axis int
+}
+type GELU struct {
+	Base
+}
+type Swish struct {
+	Base
+}
+type HardSigmoid struct {
+	Base
+}
+type HardSwish struct {
+	Base
 }

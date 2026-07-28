@@ -498,6 +498,30 @@ func (t Tensor) Squeeze() Tensor {
 func (t Tensor) Softmax() Tensor {
 	return t.SoftmaxDim(0)
 }
+func (t Tensor) SoftmaxBackward(
+	grad Tensor,
+	axis int,
+) Tensor {
+	if axis != 1 {
+		panic("SoftmaxBackward currently supports axis=1")
+	}
+	shape := t.Shape().Values()
+	batch := shape[0]
+	classes := shape[1]
+	out := New(t.Shape())
+	for n := range batch {
+		dot := float32(0)
+		for c := range classes {
+			dot += grad.At(n, c) * t.At(n, c)
+		}
+		for c := range classes {
+			y := t.At(n, c)
+			dx := y * (grad.At(n, c) - dot)
+			out.Set(dx, n, c)
+		}
+	}
+	return out
+}
 func (t Tensor) SoftmaxDim(axis int) Tensor {
 	dims := t.Shape().Values()
 	if len(dims) != 2 || axis != 1 {
@@ -545,6 +569,27 @@ func (t Tensor) SigmoidBackward(grad Tensor) Tensor {
 		s := t.memory.At(idx)
 		g := grad.memory.At(grad.memoryIndex(i))
 		out.memory.Set(out.memoryIndex(i), g*s*(1-s))
+	}
+	return out
+}
+func (t Tensor) LogSoftmaxBackward(grad Tensor, axis int) Tensor {
+	if axis != 1 {
+		panic("LogSoftmaxBackward currently supports axis=1")
+	}
+	shape := t.Shape().Values()
+	batch := shape[0]
+	classes := shape[1]
+	out := New(t.Shape())
+	for n := range batch {
+		sumGrad := float32(0)
+		for c := range classes {
+			sumGrad += grad.At(n, c)
+		}
+		for c := range classes {
+			softmax := float32(math.Exp(float64(t.At(n, c))))
+			dx := grad.At(n, c) - softmax*sumGrad
+			out.Set(dx, n, c)
+		}
 	}
 	return out
 }
@@ -794,6 +839,38 @@ func (t Tensor) ELU(alpha float32) Tensor {
 	}
 	return out
 }
+func (t Tensor) ELUBackward(grad Tensor, alpha float32) Tensor {
+
+	out := grad.Clone()
+
+	for i := 0; i < out.Len(); i++ {
+
+		x := t.FlatAt(i)
+
+		g := grad.FlatAt(i)
+
+		if x > 0 {
+			out.FlatSet(i, g)
+		} else {
+			out.FlatSet(i, g*alpha*float32(math.Exp(float64(x))))
+		}
+	}
+
+	return out
+}
+func (t Tensor) ELUBackwardFromOutput(grad Tensor, alpha float32) Tensor {
+	out := grad.Clone()
+	for i := 0; i < out.Len(); i++ {
+		y := t.FlatAt(i)
+		g := grad.FlatAt(i)
+		if y > 0 {
+			out.FlatSet(i, g)
+		} else {
+			out.FlatSet(i, g*(y+alpha))
+		}
+	}
+	return out
+}
 func (t Tensor) GELU() Tensor {
 	out := New(t.Shape())
 	for i := 0; i < t.Len(); i++ {
@@ -803,11 +880,35 @@ func (t Tensor) GELU() Tensor {
 	}
 	return out
 }
+func (t Tensor) GELUBackward(grad Tensor) Tensor {
+	out := grad.Clone()
+	const c = 0.044715
+	const sqrt2pi = 0.7978845608
+	for i := 0; i < out.Len(); i++ {
+		x := float64(t.FlatAt(i))
+		u := sqrt2pi * (x + c*x*x*x)
+		th := math.Tanh(u)
+		du := sqrt2pi * (1 + 3*c*x*x)
+		dx := 0.5*(1+th) + 0.5*x*(1-th*th)*du
+		out.FlatSet(i, grad.FlatAt(i)*float32(dx))
+	}
+	return out
+}
 func (t Tensor) Softplus() Tensor {
 	out := New(t.Shape())
 	for i := 0; i < t.Len(); i++ {
 		x := float64(t.FlatAt(i))
 		out.FlatSet(i, float32(math.Log(1+math.Exp(x))))
+	}
+	return out
+}
+func (t Tensor) SoftplusBackward(grad Tensor) Tensor {
+	out := grad.Clone()
+	for i := 0; i < out.Len(); i++ {
+		x := t.FlatAt(i)
+		// 		sig := float32(1.0 / (1.0 + math.Exp(-float64(x))))
+		sig := float32(1.0 / (1.0 + math.Exp(float64(-x))))
+		out.FlatSet(i, grad.FlatAt(i)*sig)
 	}
 	return out
 }
@@ -820,12 +921,35 @@ func (t Tensor) Swish() Tensor {
 	}
 	return out
 }
+func (t Tensor) SwishBackward(grad Tensor) Tensor {
+	out := grad.Clone()
+	for i := 0; i < out.Len(); i++ {
+		x := t.FlatAt(i)
+		// sig := float32(1 / (1 + math.Exp(-float64(x))))
+		sig := float32(1.0 / (1.0 + math.Exp(float64(-x))))
+		d := sig + x*sig*(1-sig)
+		out.FlatSet(i, grad.FlatAt(i)*d)
+	}
+	return out
+}
 func (t Tensor) Mish() Tensor {
 	out := New(t.Shape())
 	for i := 0; i < t.Len(); i++ {
 		x := float64(t.FlatAt(i))
 		sp := math.Log(1 + math.Exp(x))
 		out.FlatSet(i, float32(x*math.Tanh(sp)))
+	}
+	return out
+}
+func (t Tensor) MishBackward(grad Tensor) Tensor {
+	out := grad.Clone()
+	for i := 0; i < out.Len(); i++ {
+		x := t.FlatAt(i)
+		sp := float32(math.Log1p(math.Exp(float64(x))))
+		tanhSp := float32(math.Tanh(float64(sp)))
+		sig := float32(1.0 / (1.0 + math.Exp(float64(-x))))
+		dx := tanhSp + x*sig*(1-tanhSp*tanhSp)
+		out.FlatSet(i, grad.FlatAt(i)*dx)
 	}
 	return out
 }
@@ -844,22 +968,121 @@ func (t Tensor) HardSigmoid() Tensor {
 	}
 	return out
 }
+func (t Tensor) HardSigmoidBackward(grad Tensor) Tensor {
+	out := New(t.Shape())
+
+	for i := 0; i < out.Len(); i++ {
+		x := t.FlatAt(i)
+
+		if x <= -3 || x >= 3 {
+			out.FlatSet(i, 0)
+		} else {
+			out.FlatSet(i, grad.FlatAt(i)/6)
+		}
+	}
+
+	return out
+}
 func (t Tensor) HardSwish() Tensor {
 	out := New(t.Shape())
-	for i := 0; i < t.Len(); i++ {
+
+	for i := 0; i < out.Len(); i++ {
 		x := t.FlatAt(i)
-		v := x/6 + 0.5
-		if v < 0 {
-			v = 0
+
+		var y float32
+
+		switch {
+		case x <= -3:
+			y = 0
+
+		case x >= 3:
+			y = x
+
+		default:
+			y = x * (x + 3) / 6
 		}
-		if v > 1 {
-			v = 1
-		}
-		out.FlatSet(i, x*v)
+
+		out.FlatSet(i, y)
 	}
+
+	return out
+}
+func (t Tensor) HardSwishBackward(grad Tensor) Tensor {
+	out := New(t.Shape())
+
+	for i := 0; i < out.Len(); i++ {
+		x := t.FlatAt(i)
+
+		var dx float32
+
+		switch {
+		case x <= -3:
+			dx = 0
+
+		case x >= 3:
+			dx = 1
+
+		default:
+			dx = (2*x + 3) / 6
+		}
+
+		out.FlatSet(i, grad.FlatAt(i)*dx)
+	}
+
 	return out
 }
 
+//	func (t Tensor) HardSigmoidBackward(grad Tensor) Tensor {
+//		out := grad.Clone()
+//		for i := range out.Len() {
+//			x := t.FlatAt(i)
+//			dx := float32(0)
+//			if x < -3 || x > 3 {
+//				out.FlatSet(i, 0)
+//			} else {
+//				dx = 1.0 / 6.0
+//				out.FlatSet(i, grad.FlatAt(i)*dx)
+//			}
+//		}
+//		return out
+//	}
+// func (t Tensor) HardSwish() Tensor {
+// 	out := New(t.Shape())
+// 	for i := 0; i < t.Len(); i++ {
+// 		x := t.FlatAt(i)
+// 		v := x/6 + 0.5
+// 		if v < 0 {
+// 			v = 0
+// 		}
+// 		if v > 1 {
+// 			v = 1
+// 		}
+// 		out.FlatSet(i, x*v)
+// 	}
+// 	return out
+// }
+// func (t Tensor) HardSwishBackward(grad Tensor) Tensor {
+// 	out := grad.Clone()
+// 	for i := 0; i < out.Len(); i++ {
+// 		x := t.FlatAt(i)
+// 		var d float32
+// 		switch {
+// 		case x <= -3:
+// 			d = 0
+// 		case x >= 3:
+// 			d = 1
+// 		default:
+// 			d = x/3 + 0.5
+// 		}
+// 		out.FlatSet(i, grad.FlatAt(i)*d)
+// 	}
+// 	return out
+// }
+
+// ELUBackward(
+//     grad Tensor,
+//     alpha float32,
+// )
 // func indicesToLinear(indices []int, sh shape.Shape) int {
 // 	dims := sh.Values()
 // 	stride := 1

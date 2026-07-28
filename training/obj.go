@@ -8,8 +8,8 @@ import (
 
 // type Trainable interface {
 // 	Forward(
-// 		input autograd.Variable,
-// 	) autograd.Variable
+// 		input *autograd.Variable,
+// 	) *autograd.Variable
 
 // 	Parameters() []nn.Parameter
 // }
