@@ -15,11 +15,9 @@ import (
 // }
 
 type Trainer struct {
-	Model nn.Module
-
+	Model     nn.Module
 	Optimizer optim.Optimizer
-
-	Loss *nn.CrossEntropyLoss
+	Loss      *nn.CrossEntropyLoss
 }
 type Loader interface {
 	Batches() <-chan dataset.Batch

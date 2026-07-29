@@ -51,3 +51,20 @@ type LogSoftmax struct {
 	nn.BaseModule
 	Axis int
 }
+type L1Loss struct {
+	nn.BaseModule
+}
+type SmoothL1Loss struct {
+	nn.BaseModule
+	Beta float32
+}
+type HuberLoss struct {
+	nn.BaseModule
+	Delta float32
+}
+type BCELoss struct {
+	nn.BaseModule
+}
+type BCEWithLogitsLoss struct {
+	nn.BaseModule
+}

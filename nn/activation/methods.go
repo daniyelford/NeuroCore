@@ -212,3 +212,154 @@ func (l *LogSoftmax) Forward(input *autograd.Variable) *autograd.Variable {
 	}
 	return out
 }
+func NewL1Loss() *L1Loss {
+	return &L1Loss{
+		BaseModule: nn.NewBaseModule("L1Loss"),
+	}
+}
+func (l *L1Loss) Forward(
+	prediction,
+	target *autograd.Variable,
+) *autograd.Variable {
+
+	op := operations.NewL1()
+
+	out, err := op.Forward(
+		prediction,
+		target,
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+func (l *L1Loss) Parameters() []nn.Parameter {
+	return nil
+}
+
+func (l *L1Loss) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewSmoothL1Loss(beta float32) *SmoothL1Loss {
+	return &SmoothL1Loss{
+		BaseModule: nn.NewBaseModule("SmoothL1Loss"),
+		Beta:       beta,
+	}
+}
+
+func (l *SmoothL1Loss) Forward(
+	pred,
+	target *autograd.Variable,
+) *autograd.Variable {
+
+	op := operations.NewSmoothL1(l.Beta)
+
+	out, err := op.Forward(pred, target)
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+
+func (l *SmoothL1Loss) Parameters() []nn.Parameter {
+	return nil
+}
+
+func (l *SmoothL1Loss) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewHuberLoss(delta float32) *HuberLoss {
+	return &HuberLoss{
+		BaseModule: nn.NewBaseModule("HuberLoss"),
+		Delta:      delta,
+	}
+}
+
+func (l *HuberLoss) Forward(
+	pred,
+	target *autograd.Variable,
+) *autograd.Variable {
+
+	op := operations.NewHuber(l.Delta)
+
+	out, err := op.Forward(
+		pred,
+		target,
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+
+func (l *HuberLoss) Parameters() []nn.Parameter {
+	return nil
+}
+
+func (l *HuberLoss) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewBCELoss() *BCELoss {
+
+	return &BCELoss{
+		BaseModule: nn.NewBaseModule("BCELoss"),
+	}
+}
+func (l *BCELoss) Forward(
+	pred,
+	target *autograd.Variable,
+) *autograd.Variable {
+
+	op := operations.NewBCE()
+
+	out, err := op.Forward(
+		pred,
+		target,
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+func (l *BCELoss) Parameters() []nn.Parameter {
+	return nil
+}
+
+func (l *BCELoss) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+
+func NewBCEWithLogitsLoss() *BCEWithLogitsLoss {
+
+	return &BCEWithLogitsLoss{
+		BaseModule: nn.NewBaseModule("BCEWithLogitsLoss"),
+	}
+}
+
+func (l *BCEWithLogitsLoss) Forward(
+	pred,
+	target *autograd.Variable,
+) *autograd.Variable {
+	op := operations.NewBCEWithLogits()
+	out, err := op.Forward(
+		pred,
+		target,
+	)
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+func (l *BCEWithLogitsLoss) Parameters() []nn.Parameter {
+	return nil
+}
+func (l *BCEWithLogitsLoss) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}

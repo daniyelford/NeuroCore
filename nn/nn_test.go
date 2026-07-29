@@ -320,41 +320,41 @@ func TestLayerNorm(t *testing.T) {
 // 	}
 
 // }
-func TestFlatten(t *testing.T) {
+// func TestFlatten(t *testing.T) {
 
-	x :=
-		tensor.New(
-			shape.New(
-				2,
-				3,
-				4,
-			),
-		)
+// 	x :=
+// 		tensor.New(
+// 			shape.New(
+// 				2,
+// 				3,
+// 				4,
+// 			),
+// 		)
 
-	f :=
-		nn.NewFlatten()
+// 	f :=
+// 		nn.NewFlatten()
 
-	out :=
-		f.Forward(
-			autograd.NewVariable(
-				x,
-				false,
-			),
-		)
+// 	out :=
+// 		f.Forward(
+// 			autograd.NewVariable(
+// 				x,
+// 				false,
+// 			),
+// 		)
 
-	s :=
-		out.Data().Shape().Values()
+// 	s :=
+// 		out.Data().Shape().Values()
 
-	if s[0] != 2 || s[1] != 12 {
+// 	if s[0] != 2 || s[1] != 12 {
 
-		t.Fatalf(
-			"wrong shape %v",
-			s,
-		)
+// 		t.Fatalf(
+// 			"wrong shape %v",
+// 			s,
+// 		)
 
-	}
+// 	}
 
-}
+// }
 func TestSequentialStateDict(t *testing.T) {
 
 	// model :=

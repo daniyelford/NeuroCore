@@ -68,6 +68,23 @@ type MaxPool2D struct {
 	StrideH int
 	StrideW int
 }
+type AvgPool2D struct {
+	BaseModule
+	KernelH int
+	KernelW int
+	StrideH int
+	StrideW int
+}
+type AdaptiveAvgPool2D struct {
+	BaseModule
+	OutputH int
+	OutputW int
+}
+type AdaptiveMaxPool2D struct {
+	BaseModule
+	OutputH int
+	OutputW int
+}
 type Linear struct {
 	BaseModule
 	Weight Parameter
@@ -77,6 +94,7 @@ type Linear struct {
 }
 type Flatten struct {
 	BaseModule
+	StartDim int
 }
 type Embedding struct {
 	BaseModule
@@ -89,20 +107,19 @@ type CrossEntropyLoss struct {
 
 	op operations.CrossEntropyLoss
 }
-
-//	type Conv2D struct {
-//		BaseModule
-//		InChannels  int
-//		OutChannels int
-//		KernelH     int
-//		KernelW     int
-//		StrideH     int
-//		StrideW     int
-//		PaddingH    int
-//		PaddingW    int
-//		Weight      Parameter
-//		Bias        Parameter
-//	}
+type ConvTranspose2D struct {
+	BaseModule
+	Weight      Parameter
+	Bias        Parameter
+	InChannels  int
+	OutChannels int
+	KernelH     int
+	KernelW     int
+	StrideH     int
+	StrideW     int
+	PaddingH    int
+	PaddingW    int
+}
 type BatchNorm struct {
 	BaseModule
 	NumFeatures int
@@ -132,8 +149,42 @@ type LayerNorm struct {
 }
 type Dropout struct {
 	BaseModule
-
-	P float32
-
+	P        float32
 	Training bool
+}
+type ReflectionPad2D struct {
+	BaseModule
+	PadTop    int
+	PadBottom int
+	PadLeft   int
+	PadRight  int
+}
+type ReplicationPad2D struct {
+	BaseModule
+	Left   int
+	Right  int
+	Top    int
+	Bottom int
+}
+type PixelShuffle struct {
+	BaseModule
+	Scale int
+}
+type PixelUnshuffle struct {
+	BaseModule
+	Scale int
+}
+type RNN struct {
+	BaseModule
+	InputSize     int
+	HiddenSize    int
+	NumLayers     int
+	BatchFirst    bool
+	Bidirectional bool
+	Bias          bool
+	Nonlinearity  string
+	WeightIH      []Parameter
+	WeightHH      []Parameter
+	BiasIH        []Parameter
+	BiasHH        []Parameter
 }

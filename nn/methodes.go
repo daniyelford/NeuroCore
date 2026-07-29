@@ -198,8 +198,11 @@ func (l *Linear) Parameters() []Parameter {
 func (l *Linear) Children() []Module {
 	return nil
 }
-func NewFlatten() *Flatten {
-	return &Flatten{BaseModule: NewBaseModule("Flatten")}
+func NewFlatten(startDim int) *Flatten {
+	return &Flatten{
+		BaseModule: NewBaseModule("Flatten"),
+		StartDim:   startDim,
+	}
 }
 func (f *Flatten) Parameters() []Parameter {
 	return nil
@@ -208,21 +211,33 @@ func (f *Flatten) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{}
 }
 func (f *Flatten) Forward(input *autograd.Variable) *autograd.Variable {
-	d := input.Data().Shape().Values()
-	if len(d) < 2 {
-		panic("flatten requires batch dimension")
+
+	op := operations.NewFlatten(f.StartDim)
+
+	out, err := op.Forward(input)
+	if err != nil {
+		panic(err)
 	}
-	batch := d[0]
-	size := 1
-	for i := 1; i < len(d); i++ {
-		size *= d[i]
-	}
-	out, ok := input.Data().Reshape(shape.New(batch, size))
-	if !ok {
-		panic("flatten reshape failed")
-	}
-	return autograd.NewVariable(out, input.RequiresGrad())
+
+	return out
 }
+
+//	func (f *Flatten) Forward(input *autograd.Variable) *autograd.Variable {
+//		d := input.Data().Shape().Values()
+//		if len(d) < 2 {
+//			panic("flatten requires batch dimension")
+//		}
+//		batch := d[0]
+//		size := 1
+//		for i := 1; i < len(d); i++ {
+//			size *= d[i]
+//		}
+//		out, ok := input.Data().Reshape(shape.New(batch, size))
+//		if !ok {
+//			panic("flatten reshape failed")
+//		}
+//		return autograd.NewVariable(out, input.RequiresGrad())
+//	}
 func NewEmbedding(numEmbeddings int, embeddingDim int) *Embedding {
 	w := tensor.New(shape.New(numEmbeddings, embeddingDim))
 	return &Embedding{
@@ -460,6 +475,341 @@ func (c *Conv2D) Forward(input *autograd.Variable) *autograd.Variable {
 		}
 	}
 	return autograd.NewVariable(out, true)
+}
+func NewAvgPool2D(
+	kernelH,
+	kernelW,
+	strideH,
+	strideW int,
+) *AvgPool2D {
+
+	return &AvgPool2D{
+		BaseModule: NewBaseModule("AvgPool2D"),
+		KernelH:    kernelH,
+		KernelW:    kernelW,
+		StrideH:    strideH,
+		StrideW:    strideW,
+	}
+}
+
+func (m *AvgPool2D) Forward(
+	input *autograd.Variable,
+) *autograd.Variable {
+
+	op := operations.NewAvgPool2D(
+		m.KernelH,
+		m.KernelW,
+		m.StrideH,
+		m.StrideW,
+	)
+
+	out, err := op.Forward(input)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+
+func (m *AvgPool2D) Parameters() []Parameter {
+	return nil
+}
+
+func (m *AvgPool2D) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewAdaptiveAvgPool2D(
+	outH,
+	outW int,
+) *AdaptiveAvgPool2D {
+
+	return &AdaptiveAvgPool2D{
+		BaseModule: NewBaseModule("AdaptiveAvgPool2D"),
+		OutputH:    outH,
+		OutputW:    outW,
+	}
+}
+func (m *AdaptiveAvgPool2D) Forward(
+	input *autograd.Variable,
+) *autograd.Variable {
+
+	op := operations.NewAdaptiveAvgPool2D(
+		m.OutputH,
+		m.OutputW,
+	)
+
+	out, err := op.Forward(input)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+func (m *AdaptiveAvgPool2D) Parameters() []Parameter {
+	return nil
+}
+func (m *AdaptiveAvgPool2D) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewAdaptiveMaxPool2D(
+	outputH,
+	outputW int,
+) *AdaptiveMaxPool2D {
+
+	return &AdaptiveMaxPool2D{
+		BaseModule: NewBaseModule("AdaptiveMaxPool2D"),
+		OutputH:    outputH,
+		OutputW:    outputW,
+	}
+}
+func (m *AdaptiveMaxPool2D) Forward(
+	input *autograd.Variable,
+) *autograd.Variable {
+
+	op := operations.NewAdaptiveMaxPool2D(
+		m.OutputH,
+		m.OutputW,
+	)
+
+	out, err := op.Forward(input)
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+func (m *AdaptiveMaxPool2D) Parameters() []Parameter {
+	return nil
+}
+func (m *AdaptiveMaxPool2D) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewConvTranspose2D(
+	inChannels,
+	outChannels,
+	kernelH,
+	kernelW,
+	strideH,
+	strideW,
+	paddingH,
+	paddingW int,
+) *ConvTranspose2D {
+
+	// برای ConvTranspose وزن برعکس Conv2D است:
+	// [inChannels, outChannels, kernelH, kernelW]
+
+	w := tensor.New(
+		shape.New(
+			inChannels,
+			outChannels,
+			kernelH,
+			kernelW,
+		),
+	)
+
+	b := tensor.New(
+		shape.New(outChannels),
+	)
+
+	return &ConvTranspose2D{
+		BaseModule: NewBaseModule("ConvTranspose2D"),
+
+		Weight: NewParameter(
+			autograd.NewVariable(w, true),
+		),
+
+		Bias: NewParameter(
+			autograd.NewVariable(b, true),
+		),
+
+		InChannels:  inChannels,
+		OutChannels: outChannels,
+
+		KernelH: kernelH,
+		KernelW: kernelW,
+
+		StrideH:  strideH,
+		StrideW:  strideW,
+		PaddingH: paddingH,
+		PaddingW: paddingW,
+	}
+}
+func (c *ConvTranspose2D) Forward(input *autograd.Variable) *autograd.Variable {
+	op := operations.NewConvTranspose2D(
+		c.StrideH,
+		c.StrideW,
+		c.PaddingH,
+		c.PaddingW,
+		c.KernelH,
+		c.KernelW,
+	)
+
+	out, err := op.Forward(
+		input,
+		c.Weight.Value,
+		c.Bias.Value,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+func (c *ConvTranspose2D) Parameters() []Parameter {
+	return []Parameter{
+		c.Weight,
+		c.Bias,
+	}
+}
+func (c *ConvTranspose2D) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{
+		"weight": c.Weight.Value,
+		"bias":   c.Bias.Value,
+	}
+}
+func NewReflectionPad2D(
+	top,
+	bottom,
+	left,
+	right int,
+) *ReflectionPad2D {
+
+	return &ReflectionPad2D{
+		BaseModule: NewBaseModule("ReflectionPad2D"),
+
+		PadTop:    top,
+		PadBottom: bottom,
+		PadLeft:   left,
+		PadRight:  right,
+	}
+}
+func (r *ReflectionPad2D) Forward(
+	input *autograd.Variable,
+) *autograd.Variable {
+
+	op := operations.NewReflectionPad2D(
+		r.PadTop,
+		r.PadBottom,
+		r.PadLeft,
+		r.PadRight,
+	)
+
+	out, err := op.Forward(input)
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+func (r *ReflectionPad2D) Parameters() []Parameter {
+	return nil
+}
+func (r *ReflectionPad2D) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+
+func NewReplicationPad2D(
+	left,
+	right,
+	top,
+	bottom int,
+) *ReplicationPad2D {
+
+	return &ReplicationPad2D{
+		BaseModule: NewBaseModule("ReplicationPad2D"),
+		Left:       left,
+		Right:      right,
+		Top:        top,
+		Bottom:     bottom,
+	}
+}
+
+func (r *ReplicationPad2D) Forward(
+	input *autograd.Variable,
+) *autograd.Variable {
+
+	op := operations.NewReplicationPad2D(
+		r.Left,
+		r.Right,
+		r.Top,
+		r.Bottom,
+	)
+
+	out, err := op.Forward(input)
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+
+func (r *ReplicationPad2D) Parameters() []Parameter {
+	return nil
+}
+
+func (r *ReplicationPad2D) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+func NewPixelShuffle(scale int) *PixelShuffle {
+	return &PixelShuffle{
+		BaseModule: NewBaseModule("PixelShuffle"),
+		Scale:      scale,
+	}
+}
+
+func (p *PixelShuffle) Forward(
+	input *autograd.Variable,
+) *autograd.Variable {
+
+	op := operations.NewPixelShuffle(p.Scale)
+
+	out, err := op.Forward(input)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+
+func (p *PixelShuffle) Parameters() []Parameter {
+	return nil
+}
+
+func (p *PixelShuffle) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
+}
+
+func NewPixelUnshuffle(scale int) *PixelUnshuffle {
+	return &PixelUnshuffle{
+		BaseModule: NewBaseModule("PixelUnshuffle"),
+		Scale:      scale,
+	}
+}
+
+func (p *PixelUnshuffle) Forward(
+	input *autograd.Variable,
+) *autograd.Variable {
+
+	op := operations.NewPixelUnshuffle(p.Scale)
+
+	out, err := op.Forward(input)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return out
+}
+
+func (p *PixelUnshuffle) Parameters() []Parameter {
+	return nil
+}
+
+func (p *PixelUnshuffle) StateDict() map[string]*autograd.Variable {
+	return map[string]*autograd.Variable{}
 }
 
 //	func NewDropout(p float32) *Dropout {

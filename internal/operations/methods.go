@@ -300,71 +300,40 @@ func NewMaxPool2D(kernelH, kernelW, strideH, strideW int) *MaxPool2D {
 func (op *MaxPool2D) Name() string {
 	return "MaxPool2D"
 }
-func (op *MaxPool2D) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+func (op *MaxPool2D) Forward(
+	inputs ...*autograd.Variable,
+) (*autograd.Variable, error) {
+
 	if len(inputs) != 1 {
 		return nil, errors.New("maxpool requires one input")
 	}
+
 	x := inputs[0]
+
 	op.Save(x)
-	dims := x.Data().Shape().Values()
-	batch := dims[0]
-	channels := dims[1]
-	height := dims[2]
-	width := dims[3]
-	outH := (height-op.KernelH)/op.StrideH + 1
-	outW := (width-op.KernelW)/op.StrideW + 1
-	out := tensor.New(shape.New(batch, channels, outH, outW))
-	count := batch * channels * outH * outW
-	op.ArgMax = make([]int, count)
-	for n := range batch {
-		for c := range channels {
-			for oh := range outH {
-				for ow := range outW {
-					maxValue := float32(math.Inf(-1))
-					maxIndex := 0
-					for kh := range op.KernelH {
-						// for kh := 0; kh < op.KernelH; kh++ {
-						// for kw := 0; kw < op.KernelW; kw++ {
-						for kw := range op.KernelW {
-							ih := oh*op.StrideH + kh
-							iw := ow*op.StrideW + kw
-							v := x.Data().At(n, c, ih, iw)
-							if v > maxValue {
-								maxValue = v
-								maxIndex = ((n*channels+c)*height+ih)*width + iw
-							}
-						}
-					}
-					out.Set(maxValue, n, c, oh, ow)
-					outputIndex := (((n*channels+c)*outH+oh)*outW + ow)
-					op.ArgMax[outputIndex] = maxIndex
-				}
-			}
-		}
-	}
+
+	out, argmax := x.Data().MaxPool2D(
+		op.KernelH,
+		op.KernelW,
+		op.StrideH,
+		op.StrideW,
+	)
+
+	op.ArgMax = argmax
+
 	return op.NewOutput(op, out, x), nil
 }
-func (op *MaxPool2D) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
-	input := op.Input(0).Data()
-	dx := tensor.New(input.Shape())
-	dims := grad.Shape().Values()
-	batch := dims[0]
-	channels := dims[1]
-	outH := dims[2]
-	outW := dims[3]
-	index := 0
-	for n := range batch {
-		for c := range channels {
-			for h := range outH {
-				for w := range outW {
-					inputIndex := op.ArgMax[index]
-					old := dx.FlatAt(inputIndex)
-					dx.FlatSet(inputIndex, old+grad.At(n, c, h, w))
-					index++
-				}
-			}
-		}
-	}
+func (op *MaxPool2D) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	dx := op.Input(0).
+		Data().
+		MaxPool2DBackward(
+			grad,
+			op.ArgMax,
+		)
+
 	return []tensor.Tensor{dx}, nil
 }
 func (op *MatMul) Name() string {
@@ -404,6 +373,11 @@ func (op *MatMul) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
 	}
 	return []tensor.Tensor{da, db}, nil
 }
+func NewFlatten(startDim int) *Flatten {
+	return &Flatten{
+		StartDim: startDim,
+	}
+}
 func (op *Flatten) Name() string {
 	return "Flatten"
 }
@@ -413,7 +387,7 @@ func (op *Flatten) Forward(inputs ...*autograd.Variable) (*autograd.Variable, er
 	}
 	x := inputs[0]
 	op.Save(x)
-	out, ok := x.Data().Flatten()
+	out, ok := x.Data().FlattenFrom(op.StartDim)
 	if !ok {
 		return nil, errors.New("flatten failed")
 	}
@@ -514,84 +488,14 @@ func (op *Conv2D) Forward(inputs ...*autograd.Variable) (*autograd.Variable, err
 	w := inputs[1]
 	b := inputs[2]
 	op.Save(x, w, b)
-	out := convForward(x.Data(), w.Data(), b.Data(), op)
+	out := x.Data().Conv2D(w.Data(), b.Data(), op.StrideH, op.StrideW, op.PaddingH, op.PaddingW)
 	return op.NewOutput(op, out, x, w, b), nil
 }
 func (op *Conv2D) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
 	x := op.Input(0).Data()
 	w := op.Input(1).Data()
-	xShape := x.Shape().Values()
-	wShape := w.Shape().Values()
-	batch := xShape[0]
-	inC := xShape[1]
-	height := xShape[2]
-	width := xShape[3]
-	outC := wShape[0]
-	dx := tensor.New(x.Shape())
-	dw := tensor.New(w.Shape())
-	db := tensor.New(shape.New(outC))
-	outH := grad.Shape().Values()[2]
-	outW := grad.Shape().Values()[3]
-	for n := range batch {
-		for oc := range outC {
-			for oh := range outH {
-				for ow := range outW {
-					g := grad.At(n, oc, oh, ow)
-					db.Set(db.At(oc)+g, oc)
-					for ic := range inC {
-						for kh := range op.KernelH {
-							for kw := range op.KernelW {
-								ih := oh*op.StrideH + kh - op.PaddingH
-								iw := ow*op.StrideW + kw - op.PaddingW
-								if ih < 0 || ih >= height || iw < 0 || iw >= width {
-									continue
-								}
-								dw.Set(dw.At(oc, ic, kh, kw)+g*x.At(n, ic, ih, iw), oc, ic, kh, kw)
-								dx.Set(dx.At(n, ic, ih, iw)+g*w.At(oc, ic, kh, kw), n, ic, ih, iw)
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+	dx, dw, db := x.Conv2DBackward(grad, w, op.StrideH, op.StrideW, op.PaddingH, op.PaddingW)
 	return []tensor.Tensor{dx, dw, db}, nil
-}
-func convForward(x tensor.Tensor, w tensor.Tensor, b tensor.Tensor, op *Conv2D) tensor.Tensor {
-	dims := x.Shape().Values()
-	batch := dims[0]
-	inC := dims[1]
-	height := dims[2]
-	width := dims[3]
-	wShape := w.Shape().Values()
-	outC := wShape[0]
-	outH := (height+2*op.PaddingH-op.KernelH)/op.StrideH + 1
-	outW := (width+2*op.PaddingW-op.KernelW)/op.StrideW + 1
-	out := tensor.New(shape.New(batch, outC, outH, outW))
-	for n := range batch {
-		for oc := range outC {
-			for oh := range outH {
-				for ow := range outW {
-					sum := float32(0)
-					for ic := range inC {
-						for kh := range op.KernelH {
-							for kw := range op.KernelW {
-								ih := oh*op.StrideH + kh - op.PaddingH
-								iw := ow*op.StrideW + kw - op.PaddingW
-								if ih < 0 || ih >= height || iw < 0 || iw >= width {
-									continue
-								}
-								sum += x.At(n, ic, ih, iw) * w.At(oc, ic, kh, kw)
-							}
-						}
-					}
-					sum += b.At(oc)
-					out.Set(sum, n, oc, oh, ow)
-				}
-			}
-		}
-	}
-	return out
 }
 func NewBatchNorm(channels int, eps float32) *BatchNorm {
 	return &BatchNorm{
@@ -1023,13 +927,13 @@ func (op *Dropout) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
 	dx, _ := grad.MulBroadcast(op.mask)
 	return []tensor.Tensor{dx}, nil
 }
-func NewRNN(inputSize int, hiddenSize int, activation string) *RNN {
-	return &RNN{InputSize: inputSize, HiddenSize: hiddenSize, Activation: activation}
+func NewRNNCell(inputSize int, hiddenSize int, activation string) *RNNCell {
+	return &RNNCell{InputSize: inputSize, HiddenSize: hiddenSize, Activation: activation}
 }
-func (op *RNN) Name() string {
-	return "RNN"
+func (op *RNNCell) Name() string {
+	return "RNNCell"
 }
-func (op *RNN) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+func (op *RNNCell) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
 	if len(inputs) != 5 {
 		return nil, errors.New("rnn requires x, hPrev, Wx, Wh, bias")
 	}
@@ -1060,7 +964,7 @@ func (op *RNN) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error)
 	}
 	return op.NewOutput(op, sum, x, hPrev, Wx, Wh, bias), nil
 }
-func (op *RNN) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
+func (op *RNNCell) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
 	x := op.Input(0).Data()
 	hPrev := op.Input(1).Data()
 	Wx := op.Input(2).Data()
@@ -1074,3 +978,815 @@ func (op *RNN) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
 	_ = grad
 	return []tensor.Tensor{dx, dh, dWx, dWh, db}, nil
 }
+func NewL1() *L1 {
+	return &L1{}
+}
+func (op *L1) Name() string {
+	return "L1Loss"
+}
+func (op *L1) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+	if len(inputs) != 2 {
+		return nil, errors.New("l1 loss requires prediction and target")
+	}
+	pred := inputs[0]
+	target := inputs[1]
+	op.Save(pred, target)
+	loss := pred.
+		Data().
+		L1Loss(target.Data()).
+		ReduceMean()
+	return op.NewOutput(
+		op,
+		loss,
+		pred,
+		target,
+	), nil
+}
+func (op *L1) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+	pred := op.Input(0).Data()
+	target := op.Input(1).Data()
+	scale := float32(1.0 / float32(pred.Len()))
+	grad = grad.MulScalar(scale)
+	dPred, dTarget :=
+		pred.L1LossBackward(
+			target,
+			grad,
+		)
+	return []tensor.Tensor{
+		dPred,
+		dTarget,
+	}, nil
+}
+func NewSmoothL1(beta float32) *SmoothL1 {
+	return &SmoothL1{
+		Beta: beta,
+	}
+}
+func (op *SmoothL1) Name() string {
+	return "SmoothL1Loss"
+}
+func (op *SmoothL1) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+
+	if len(inputs) != 2 {
+		return nil, errors.New("smoothl1 requires prediction and target")
+	}
+
+	pred := inputs[0]
+	target := inputs[1]
+
+	op.Save(pred, target)
+
+	loss := pred.
+		Data().
+		SmoothL1Loss(
+			target.Data(),
+			op.Beta,
+		).
+		ReduceMean()
+
+	return op.NewOutput(
+		op,
+		loss,
+		pred,
+		target,
+	), nil
+}
+func (op *SmoothL1) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	pred := op.Input(0).Data()
+	target := op.Input(1).Data()
+
+	scale := float32(1.0 / float32(pred.Len()))
+	grad = grad.MulScalar(scale)
+
+	dPred, dTarget :=
+		pred.SmoothL1LossBackward(
+			target,
+			grad,
+			op.Beta,
+		)
+
+	return []tensor.Tensor{
+		dPred,
+		dTarget,
+	}, nil
+}
+func NewHuber(delta float32) *Huber {
+	return &Huber{
+		Delta: delta,
+	}
+}
+
+func (op *Huber) Name() string {
+	return "HuberLoss"
+}
+func (op *Huber) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+
+	if len(inputs) != 2 {
+		return nil, errors.New("huber requires prediction and target")
+	}
+
+	pred := inputs[0]
+	target := inputs[1]
+
+	op.Save(pred, target)
+
+	loss := pred.
+		Data().
+		HuberLoss(
+			target.Data(),
+			op.Delta,
+		).
+		ReduceMean()
+
+	return op.NewOutput(
+		op,
+		loss,
+		pred,
+		target,
+	), nil
+}
+func (op *Huber) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	pred := op.Input(0).Data()
+	target := op.Input(1).Data()
+
+	grad = grad.MulScalar(
+		1 / float32(pred.Len()),
+	)
+
+	dPred, dTarget :=
+		pred.HuberLossBackward(
+			target,
+			grad,
+			op.Delta,
+		)
+
+	return []tensor.Tensor{
+		dPred,
+		dTarget,
+	}, nil
+}
+func NewBCE() *BCE {
+	return &BCE{}
+}
+func (op *BCE) Name() string {
+	return "BCELoss"
+}
+func (op *BCE) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+
+	if len(inputs) != 2 {
+		return nil, errors.New("bce requires prediction and target")
+	}
+
+	pred := inputs[0]
+	target := inputs[1]
+
+	op.Save(pred, target)
+
+	loss :=
+		pred.
+			Data().
+			BCELoss(target.Data()).
+			ReduceMean()
+
+	return op.NewOutput(
+		op,
+		loss,
+		pred,
+		target,
+	), nil
+}
+func (op *BCE) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	pred := op.Input(0).Data()
+	target := op.Input(1).Data()
+
+	grad = grad.MulScalar(
+		1 / float32(pred.Len()),
+	)
+
+	dPred, dTarget :=
+		pred.BCELossBackward(
+			target,
+			grad,
+		)
+
+	return []tensor.Tensor{
+		dPred,
+		dTarget,
+	}, nil
+}
+func NewBCEWithLogits() *BCEWithLogits {
+	return &BCEWithLogits{}
+}
+func (op *BCEWithLogits) Name() string {
+	return "BCEWithLogitsLoss"
+}
+func (op *BCEWithLogits) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+
+	if len(inputs) != 2 {
+		return nil, errors.New("bcewithlogits requires prediction and target")
+	}
+
+	pred := inputs[0]
+	target := inputs[1]
+
+	op.Save(pred, target)
+
+	loss :=
+		pred.
+			Data().
+			BCEWithLogitsLoss(target.Data()).
+			ReduceMean()
+
+	return op.NewOutput(
+		op,
+		loss,
+		pred,
+		target,
+	), nil
+}
+func (op *BCEWithLogits) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	pred := op.Input(0).Data()
+	target := op.Input(1).Data()
+
+	grad = grad.MulScalar(
+		1 / float32(pred.Len()),
+	)
+
+	dPred, dTarget :=
+		pred.BCEWithLogitsBackward(
+			target,
+			grad,
+		)
+
+	return []tensor.Tensor{
+		dPred,
+		dTarget,
+	}, nil
+}
+func NewAvgPool2D(
+	kernelH int,
+	kernelW int,
+	strideH int,
+	strideW int,
+) *AvgPool2D {
+
+	return &AvgPool2D{
+		KernelH: kernelH,
+		KernelW: kernelW,
+		StrideH: strideH,
+		StrideW: strideW,
+	}
+}
+func (op *AvgPool2D) Name() string {
+	return "AvgPool2D"
+}
+func (op *AvgPool2D) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+
+	if len(inputs) != 1 {
+		return nil, errors.New("avgpool requires one input")
+	}
+
+	x := inputs[0]
+
+	op.Save(x)
+
+	out := x.Data().AvgPool2D(
+		op.KernelH,
+		op.KernelW,
+		op.StrideH,
+		op.StrideW,
+	)
+
+	return op.NewOutput(op, out, x), nil
+}
+func (op *AvgPool2D) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	dx := op.Input(0).Data().AvgPool2DBackward(
+		grad,
+		op.KernelH,
+		op.KernelW,
+		op.StrideH,
+		op.StrideW,
+	)
+
+	return []tensor.Tensor{dx}, nil
+}
+func NewAdaptiveAvgPool2D(
+	outH,
+	outW int,
+) *AdaptiveAvgPool2D {
+
+	return &AdaptiveAvgPool2D{
+		OutputH: outH,
+		OutputW: outW,
+	}
+}
+func (op *AdaptiveAvgPool2D) Name() string {
+	return "AdaptiveAvgPool2D"
+}
+func (op *AdaptiveAvgPool2D) Forward(
+	inputs ...*autograd.Variable,
+) (*autograd.Variable, error) {
+
+	if len(inputs) != 1 {
+		return nil, errors.New("adaptiveavgpool requires one input")
+	}
+
+	x := inputs[0]
+
+	op.Save(x)
+
+	out := x.Data().AdaptiveAvgPool2D(
+		op.OutputH,
+		op.OutputW,
+	)
+
+	return op.NewOutput(op, out, x), nil
+}
+func (op *AdaptiveAvgPool2D) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	dx := op.Input(0).
+		Data().
+		AdaptiveAvgPool2DBackward(
+			grad,
+			op.OutputH,
+			op.OutputW,
+		)
+
+	return []tensor.Tensor{dx}, nil
+}
+func NewAdaptiveMaxPool2D(
+	outputH,
+	outputW int,
+) *AdaptiveMaxPool2D {
+
+	return &AdaptiveMaxPool2D{
+		OutputH: outputH,
+		OutputW: outputW,
+	}
+}
+func (op *AdaptiveMaxPool2D) Name() string {
+	return "AdaptiveMaxPool2D"
+}
+func (op *AdaptiveMaxPool2D) Forward(
+	inputs ...*autograd.Variable,
+) (*autograd.Variable, error) {
+
+	if len(inputs) != 1 {
+		return nil, errors.New("adaptivemaxpool2d requires one input")
+	}
+
+	x := inputs[0]
+
+	op.Save(x)
+
+	out, argmax := x.Data().AdaptiveMaxPool2D(
+		op.OutputH,
+		op.OutputW,
+	)
+
+	op.ArgMax = argmax
+
+	return op.NewOutput(
+		op,
+		out,
+		x,
+	), nil
+}
+func (op *AdaptiveMaxPool2D) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	dx := op.Input(0).
+		Data().
+		AdaptiveMaxPool2DBackward(
+			grad,
+			op.ArgMax,
+		)
+
+	return []tensor.Tensor{
+		dx,
+	}, nil
+}
+func NewConvTranspose2D(
+	strideH,
+	strideW,
+	paddingH,
+	paddingW,
+	kernelH,
+	kernelW int,
+) *ConvTranspose2D {
+
+	return &ConvTranspose2D{
+		StrideH:  strideH,
+		StrideW:  strideW,
+		PaddingH: paddingH,
+		PaddingW: paddingW,
+		KernelH:  kernelH,
+		KernelW:  kernelW,
+	}
+}
+func (op *ConvTranspose2D) Name() string {
+	return "ConvTranspose2D"
+}
+func (op *ConvTranspose2D) Forward(
+	inputs ...*autograd.Variable,
+) (*autograd.Variable, error) {
+
+	if len(inputs) != 3 {
+		return nil, errors.New("convtranspose2d requires x weight bias")
+	}
+
+	x := inputs[0]
+	w := inputs[1]
+	b := inputs[2]
+
+	op.Save(x, w, b)
+
+	out := x.Data().ConvTranspose2D(
+		w.Data(),
+		b.Data(),
+		op.StrideH,
+		op.StrideW,
+		op.PaddingH,
+		op.PaddingW,
+	)
+
+	return op.NewOutput(
+		op,
+		out,
+		x,
+		w,
+		b,
+	), nil
+}
+func (op *ConvTranspose2D) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	dx,
+		dw,
+		db :=
+		op.Input(0).
+			Data().
+			ConvTranspose2DBackward(
+				grad,
+				op.Input(1).Data(),
+				op.StrideH,
+				op.StrideW,
+				op.PaddingH,
+				op.PaddingW,
+			)
+
+	return []tensor.Tensor{
+		dx,
+		dw,
+		db,
+	}, nil
+}
+func NewReflectionPad2D(
+	top,
+	bottom,
+	left,
+	right int,
+) *ReflectionPad2D {
+	return &ReflectionPad2D{
+		PadTop:    top,
+		PadBottom: bottom,
+		PadLeft:   left,
+		PadRight:  right,
+	}
+}
+func (op *ReflectionPad2D) Name() string {
+	return "ReflectionPad2D"
+}
+func (op *ReflectionPad2D) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+	x := inputs[0]
+
+	op.Save(x)
+
+	out := x.Data().ReflectionPad2D(
+		op.PadTop,
+		op.PadBottom,
+		op.PadLeft,
+		op.PadRight,
+	)
+
+	return op.NewOutput(op, out, x), nil
+}
+func (op *ReflectionPad2D) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
+	dx := op.Input(0).
+		Data().
+		ReflectionPad2DBackward(
+			grad,
+			op.PadTop,
+			op.PadBottom,
+			op.PadLeft,
+			op.PadRight,
+		)
+
+	return []tensor.Tensor{dx}, nil
+}
+func NewReplicationPad2D(
+	left,
+	right,
+	top,
+	bottom int,
+) *ReplicationPad2D {
+
+	return &ReplicationPad2D{
+		Left:   left,
+		Right:  right,
+		Top:    top,
+		Bottom: bottom,
+	}
+}
+
+func (op *ReplicationPad2D) Name() string {
+	return "ReplicationPad2D"
+}
+
+func (op *ReplicationPad2D) Forward(
+	inputs ...*autograd.Variable,
+) (*autograd.Variable, error) {
+
+	if len(inputs) != 1 {
+		return nil, errors.New("replicationpad2d requires one input")
+	}
+
+	x := inputs[0]
+
+	op.Save(x)
+
+	out := x.Data().ReplicationPad2D(
+		op.Left,
+		op.Right,
+		op.Top,
+		op.Bottom,
+	)
+
+	return op.NewOutput(op, out, x), nil
+}
+
+func (op *ReplicationPad2D) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	dx := op.Input(0).
+		Data().
+		ReplicationPad2DBackward(
+			grad,
+			op.Left,
+			op.Right,
+			op.Top,
+			op.Bottom,
+		)
+
+	return []tensor.Tensor{dx}, nil
+}
+
+func NewPixelShuffle(scale int) *PixelShuffle {
+	return &PixelShuffle{
+		Scale: scale,
+	}
+}
+
+func (op *PixelShuffle) Name() string {
+	return "PixelShuffle"
+}
+func (op *PixelShuffle) Forward(
+	inputs ...*autograd.Variable,
+) (*autograd.Variable, error) {
+
+	if len(inputs) != 1 {
+		return nil, errors.New("pixelshuffle requires one input")
+	}
+
+	x := inputs[0]
+
+	op.Save(x)
+
+	out := x.Data().PixelShuffle(op.Scale)
+
+	return op.NewOutput(op, out, x), nil
+}
+
+func (op *PixelShuffle) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	dx :=
+		op.Input(0).
+			Data().
+			PixelShuffleBackward(
+				grad,
+				op.Scale,
+			)
+
+	return []tensor.Tensor{
+		dx,
+	}, nil
+}
+func NewPixelUnshuffle(scale int) *PixelUnshuffle {
+	return &PixelUnshuffle{
+		Scale: scale,
+	}
+}
+
+func (op *PixelUnshuffle) Name() string {
+	return "PixelUnshuffle"
+}
+
+func (op *PixelUnshuffle) Forward(
+	inputs ...*autograd.Variable,
+) (*autograd.Variable, error) {
+
+	if len(inputs) != 1 {
+		return nil, errors.New("pixelunshuffle requires one input")
+	}
+
+	x := inputs[0]
+
+	op.Save(x)
+
+	out := x.Data().PixelUnshuffle(op.Scale)
+
+	return op.NewOutput(op, out, x), nil
+}
+
+func (op *PixelUnshuffle) Backward(
+	grad tensor.Tensor,
+) ([]tensor.Tensor, error) {
+
+	dx :=
+		op.Input(0).
+			Data().
+			PixelUnshuffleBackward(
+				grad,
+				op.Scale,
+			)
+
+	return []tensor.Tensor{dx}, nil
+}
+
+// func (op *MaxPool2D) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) {
+// 	if len(inputs) != 1 {
+// 		return nil, errors.New("maxpool requires one input")
+// 	}
+// 	x := inputs[0]
+// 	op.Save(x)
+// 	dims := x.Data().Shape().Values()
+// 	batch := dims[0]
+// 	channels := dims[1]
+// 	height := dims[2]
+// 	width := dims[3]
+// 	outH := (height-op.KernelH)/op.StrideH + 1
+// 	outW := (width-op.KernelW)/op.StrideW + 1
+// 	out := tensor.New(shape.New(batch, channels, outH, outW))
+// 	count := batch * channels * outH * outW
+// 	op.ArgMax = make([]int, count)
+// 	for n := range batch {
+// 		for c := range channels {
+// 			for oh := range outH {
+// 				for ow := range outW {
+// 					maxValue := float32(math.Inf(-1))
+// 					maxIndex := 0
+// 					for kh := range op.KernelH {
+// 						for kw := range op.KernelW {
+// 							ih := oh*op.StrideH + kh
+// 							iw := ow*op.StrideW + kw
+// 							v := x.Data().At(n, c, ih, iw)
+// 							if v > maxValue {
+// 								maxValue = v
+// 								maxIndex = ((n*channels+c)*height+ih)*width + iw
+// 							}
+// 						}
+// 					}
+// 					out.Set(maxValue, n, c, oh, ow)
+// 					outputIndex := (((n*channels+c)*outH+oh)*outW + ow)
+// 					op.ArgMax[outputIndex] = maxIndex
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return op.NewOutput(op, out, x), nil
+// }
+// func (op *MaxPool2D) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
+// 	input := op.Input(0).Data()
+// 	dx := tensor.New(input.Shape())
+// 	dims := grad.Shape().Values()
+// 	batch := dims[0]
+// 	channels := dims[1]
+// 	outH := dims[2]
+// 	outW := dims[3]
+// 	index := 0
+// 	for n := range batch {
+// 		for c := range channels {
+// 			for h := range outH {
+// 				for w := range outW {
+// 					inputIndex := op.ArgMax[index]
+// 					old := dx.FlatAt(inputIndex)
+// 					dx.FlatSet(inputIndex, old+grad.At(n, c, h, w))
+// 					index++
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return []tensor.Tensor{dx}, nil
+// }
+
+// func (op *Conv2D) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
+// 	x := op.Input(0).Data()
+// 	w := op.Input(1).Data()
+// 	xShape := x.Shape().Values()
+// 	wShape := w.Shape().Values()
+// 	batch := xShape[0]
+// 	inC := xShape[1]
+// 	height := xShape[2]
+// 	width := xShape[3]
+// 	outC := wShape[0]
+// 	dx := tensor.New(x.Shape())
+// 	dw := tensor.New(w.Shape())
+// 	db := tensor.New(shape.New(outC))
+// 	outH := grad.Shape().Values()[2]
+// 	outW := grad.Shape().Values()[3]
+// 	for n := range batch {
+// 		for oc := range outC {
+// 			for oh := range outH {
+// 				for ow := range outW {
+// 					g := grad.At(n, oc, oh, ow)
+// 					db.Set(db.At(oc)+g, oc)
+// 					for ic := range inC {
+// 						for kh := range op.KernelH {
+// 							for kw := range op.KernelW {
+// 								ih := oh*op.StrideH + kh - op.PaddingH
+// 								iw := ow*op.StrideW + kw - op.PaddingW
+// 								if ih < 0 || ih >= height || iw < 0 || iw >= width {
+// 									continue
+// 								}
+// 								dw.Set(dw.At(oc, ic, kh, kw)+g*x.At(n, ic, ih, iw), oc, ic, kh, kw)
+// 								dx.Set(dx.At(n, ic, ih, iw)+g*w.At(oc, ic, kh, kw), n, ic, ih, iw)
+// 							}
+// 						}
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return []tensor.Tensor{dx, dw, db}, nil
+// }
+
+//	func convForward(x tensor.Tensor, w tensor.Tensor, b tensor.Tensor, op *Conv2D) tensor.Tensor {
+//		dims := x.Shape().Values()
+//		batch := dims[0]
+//		inC := dims[1]
+//		height := dims[2]
+//		width := dims[3]
+//		wShape := w.Shape().Values()
+//		outC := wShape[0]
+//		outH := (height+2*op.PaddingH-op.KernelH)/op.StrideH + 1
+//		outW := (width+2*op.PaddingW-op.KernelW)/op.StrideW + 1
+//		out := tensor.New(shape.New(batch, outC, outH, outW))
+//		for n := range batch {
+//			for oc := range outC {
+//				for oh := range outH {
+//					for ow := range outW {
+//						sum := float32(0)
+//						for ic := range inC {
+//							for kh := range op.KernelH {
+//								for kw := range op.KernelW {
+//									ih := oh*op.StrideH + kh - op.PaddingH
+//									iw := ow*op.StrideW + kw - op.PaddingW
+//									if ih < 0 || ih >= height || iw < 0 || iw >= width {
+//										continue
+//									}
+//									sum += x.At(n, ic, ih, iw) * w.At(oc, ic, kh, kw)
+//								}
+//							}
+//						}
+//						sum += b.At(oc)
+//						out.Set(sum, n, oc, oh, ow)
+//					}
+//				}
+//			}
+//		}
+//		return out
+//	}

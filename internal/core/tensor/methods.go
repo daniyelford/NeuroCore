@@ -638,9 +638,24 @@ func (t Tensor) ScaleInplace(value float32) {
 		t.memory.Set(i, t.memory.At(i)*value)
 	}
 }
-func (t Tensor) Flatten() (Tensor, bool) {
-	return t.Reshape(shape.New(t.NumElements()))
+func (t Tensor) FlattenFrom(dim int) (Tensor, bool) {
+	dims := t.Shape().Values()
+	if dim < 0 || dim >= len(dims) {
+		return Tensor{}, false
+	}
+	newDims := make([]int, 0, dim+1)
+	newDims = append(newDims, dims[:dim]...)
+	size := 1
+	for _, d := range dims[dim:] {
+		size *= d
+	}
+	newDims = append(newDims, size)
+	return t.Reshape(shape.New(newDims...))
 }
+
+//	func (t Tensor) Flatten() (Tensor, bool) {
+//		return t.FlattenFrom(1)
+//	}
 func (t Tensor) Fill(value float32) {
 	t.memory.Fill(value)
 }
@@ -1073,58 +1088,1540 @@ func (t Tensor) LayerNormBackward(grad Tensor, gamma Tensor, mean Tensor, varian
 	}
 	return dx, dgamma, dbeta
 }
+func (t Tensor) L1Loss(target Tensor) Tensor {
+	diff := t.Sub(target)
+	out := New(diff.Shape())
+	for i := 0; i < diff.Len(); i++ {
+		v := diff.FlatAt(i)
+		if v < 0 {
+			v = -v
+		}
+		out.FlatSet(i, v)
+	}
+	return out
+}
+func (t Tensor) L1LossBackward(target Tensor, grad Tensor) (Tensor, Tensor) {
+	dPred := New(t.Shape())
+	dTarget := New(target.Shape())
+	for i := 0; i < t.Len(); i++ {
+		p := t.FlatAt(i)
+		y := target.FlatAt(i)
+		g := grad.FlatAt(i)
+		switch {
+		case p > y:
+			dPred.FlatSet(i, g)
+			dTarget.FlatSet(i, -g)
+		case p < y:
+			dPred.FlatSet(i, -g)
+			dTarget.FlatSet(i, g)
 
-//	func (t Tensor) HardSigmoidBackward(grad Tensor) Tensor {
-//		out := grad.Clone()
-//		for i := range out.Len() {
-//			x := t.FlatAt(i)
-//			dx := float32(0)
-//			if x < -3 || x > 3 {
-//				out.FlatSet(i, 0)
-//			} else {
-//				dx = 1.0 / 6.0
-//				out.FlatSet(i, grad.FlatAt(i)*dx)
-//			}
-//		}
-//		return out
-//	}
-// func (t Tensor) HardSwish() Tensor {
-// 	out := New(t.Shape())
-// 	for i := 0; i < t.Len(); i++ {
-// 		x := t.FlatAt(i)
-// 		v := x/6 + 0.5
-// 		if v < 0 {
-// 			v = 0
-// 		}
-// 		if v > 1 {
-// 			v = 1
-// 		}
-// 		out.FlatSet(i, x*v)
-// 	}
-// 	return out
-// }
-// func (t Tensor) HardSwishBackward(grad Tensor) Tensor {
-// 	out := grad.Clone()
-// 	for i := 0; i < out.Len(); i++ {
-// 		x := t.FlatAt(i)
-// 		var d float32
-// 		switch {
-// 		case x <= -3:
-// 			d = 0
-// 		case x >= 3:
-// 			d = 1
-// 		default:
-// 			d = x/3 + 0.5
-// 		}
-// 		out.FlatSet(i, grad.FlatAt(i)*d)
-// 	}
-// 	return out
-// }
+		default:
+			dPred.FlatSet(i, 0)
+			dTarget.FlatSet(i, 0)
+		}
+	}
+	return dPred, dTarget
+}
+func (t Tensor) SmoothL1Loss(target Tensor, beta float32) Tensor {
 
-// ELUBackward(
-//     grad Tensor,
-//     alpha float32,
-// )
+	if beta <= 0 {
+		return t.L1Loss(target)
+	}
+
+	out := New(t.Shape())
+
+	for i := 0; i < t.Len(); i++ {
+
+		diff := t.FlatAt(i) - target.FlatAt(i)
+
+		if diff < 0 {
+			diff = -diff
+		}
+
+		if diff < beta {
+			out.FlatSet(i, 0.5*diff*diff/beta)
+		} else {
+			out.FlatSet(i, diff-0.5*beta)
+		}
+	}
+
+	return out
+}
+func (t Tensor) SmoothL1LossBackward(
+	target Tensor,
+	grad Tensor,
+	beta float32,
+) (Tensor, Tensor) {
+
+	dPred := New(t.Shape())
+	dTarget := New(target.Shape())
+
+	for i := 0; i < t.Len(); i++ {
+
+		diff := t.FlatAt(i) - target.FlatAt(i)
+
+		var g float32
+
+		switch {
+
+		case diff > beta:
+			g = 1
+
+		case diff < -beta:
+			g = -1
+
+		default:
+			g = diff / beta
+		}
+
+		g *= grad.FlatAt(i)
+
+		dPred.FlatSet(i, g)
+		dTarget.FlatSet(i, -g)
+	}
+
+	return dPred, dTarget
+}
+func (t Tensor) HuberLoss(target Tensor, delta float32) Tensor {
+
+	out := New(t.Shape())
+
+	for i := 0; i < t.Len(); i++ {
+
+		diff := t.FlatAt(i) - target.FlatAt(i)
+
+		abs := diff
+		if abs < 0 {
+			abs = -abs
+		}
+
+		if abs <= delta {
+			out.FlatSet(i, 0.5*diff*diff)
+		} else {
+			out.FlatSet(i, delta*(abs-0.5*delta))
+		}
+	}
+
+	return out
+}
+func (t Tensor) HuberLossBackward(
+	target Tensor,
+	grad Tensor,
+	delta float32,
+) (Tensor, Tensor) {
+
+	dPred := New(t.Shape())
+	dTarget := New(target.Shape())
+
+	for i := 0; i < t.Len(); i++ {
+
+		diff := t.FlatAt(i) - target.FlatAt(i)
+
+		var g float32
+
+		switch {
+
+		case diff > delta:
+			g = delta
+
+		case diff < -delta:
+			g = -delta
+
+		default:
+			g = diff
+		}
+
+		g *= grad.FlatAt(i)
+
+		dPred.FlatSet(i, g)
+		dTarget.FlatSet(i, -g)
+	}
+
+	return dPred, dTarget
+}
+func (t Tensor) BCELoss(target Tensor) Tensor {
+
+	out := New(t.Shape())
+
+	const eps = 1e-7
+
+	for i := 0; i < t.Len(); i++ {
+
+		p := t.FlatAt(i)
+		y := target.FlatAt(i)
+
+		if p < eps {
+			p = eps
+		}
+
+		if p > 1-eps {
+			p = 1 - eps
+		}
+
+		loss :=
+			-y*float32(math.Log(float64(p))) -
+				(1-y)*float32(math.Log(float64(1-p)))
+
+		out.FlatSet(i, loss)
+	}
+
+	return out
+}
+func (t Tensor) BCELossBackward(
+	target Tensor,
+	grad Tensor,
+) (Tensor, Tensor) {
+
+	dPred := New(t.Shape())
+	dTarget := New(target.Shape())
+
+	const eps = 1e-7
+
+	for i := 0; i < t.Len(); i++ {
+
+		p := t.FlatAt(i)
+		y := target.FlatAt(i)
+
+		if p < eps {
+			p = eps
+		}
+
+		if p > 1-eps {
+			p = 1 - eps
+		}
+
+		g := grad.FlatAt(i)
+
+		dp :=
+			(-y/p +
+				(1-y)/(1-p)) * g
+
+		dPred.FlatSet(i, dp)
+
+		dTarget.FlatSet(i, 0)
+	}
+
+	return dPred, dTarget
+}
+func (t Tensor) BCEWithLogitsLoss(target Tensor) Tensor {
+
+	out := New(t.Shape())
+
+	for i := 0; i < t.Len(); i++ {
+
+		x := t.FlatAt(i)
+		y := target.FlatAt(i)
+
+		loss :=
+			maxf(x, 0) -
+				x*y +
+				float32(math.Log1p(math.Exp(float64(-absf(x)))))
+
+		out.FlatSet(i, loss)
+	}
+
+	return out
+}
+func maxf(a, b float32) float32 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func absf(v float32) float32 {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+func (t Tensor) BCEWithLogitsBackward(
+	target Tensor,
+	grad Tensor,
+) (Tensor, Tensor) {
+
+	dPred := New(t.Shape())
+	dTarget := New(target.Shape())
+
+	for i := 0; i < t.Len(); i++ {
+
+		x := t.FlatAt(i)
+
+		sig :=
+			float32(
+				1.0 /
+					(1.0 + math.Exp(-float64(x))),
+			)
+
+		g :=
+			(sig - target.FlatAt(i)) *
+				grad.FlatAt(i)
+
+		dPred.FlatSet(i, g)
+
+		dTarget.FlatSet(i, 0)
+	}
+
+	return dPred, dTarget
+}
+func (t Tensor) Conv2D(
+	weight Tensor,
+	bias Tensor,
+	strideH,
+	strideW,
+	padH,
+	padW int,
+) Tensor {
+
+	xShape := t.Shape().Values()
+	wShape := weight.Shape().Values()
+
+	batch := xShape[0]
+	inC := xShape[1]
+	height := xShape[2]
+	width := xShape[3]
+
+	outC := wShape[0]
+	kernelH := wShape[2]
+	kernelW := wShape[3]
+
+	outH := (height+2*padH-kernelH)/strideH + 1
+	outW := (width+2*padW-kernelW)/strideW + 1
+
+	out := New(shape.New(batch, outC, outH, outW))
+
+	for n := 0; n < batch; n++ {
+		for oc := 0; oc < outC; oc++ {
+			for oh := 0; oh < outH; oh++ {
+				for ow := 0; ow < outW; ow++ {
+
+					sum := bias.At(oc)
+
+					for ic := 0; ic < inC; ic++ {
+						for kh := 0; kh < kernelH; kh++ {
+							for kw := 0; kw < kernelW; kw++ {
+
+								ih := oh*strideH + kh - padH
+								iw := ow*strideW + kw - padW
+
+								if ih < 0 || ih >= height {
+									continue
+								}
+
+								if iw < 0 || iw >= width {
+									continue
+								}
+
+								sum +=
+									t.At(n, ic, ih, iw) *
+										weight.At(oc, ic, kh, kw)
+
+							}
+						}
+					}
+
+					out.Set(sum, n, oc, oh, ow)
+				}
+			}
+		}
+	}
+
+	return out
+}
+func (t Tensor) Conv2DBackward(
+	grad Tensor,
+	weight Tensor,
+	strideH,
+	strideW,
+	padH,
+	padW int,
+) (Tensor, Tensor, Tensor) {
+
+	xShape := t.Shape().Values()
+	wShape := weight.Shape().Values()
+
+	batch := xShape[0]
+	inC := xShape[1]
+	height := xShape[2]
+	width := xShape[3]
+
+	outC := wShape[0]
+	kernelH := wShape[2]
+	kernelW := wShape[3]
+
+	outH := grad.Shape().Values()[2]
+	outW := grad.Shape().Values()[3]
+
+	dx := New(t.Shape())
+	dw := New(weight.Shape())
+	db := New(shape.New(outC))
+
+	for n := 0; n < batch; n++ {
+
+		for oc := 0; oc < outC; oc++ {
+
+			for oh := 0; oh < outH; oh++ {
+
+				for ow := 0; ow < outW; ow++ {
+
+					g := grad.At(n, oc, oh, ow)
+
+					db.Set(
+						db.At(oc)+g,
+						oc,
+					)
+
+					for ic := 0; ic < inC; ic++ {
+
+						for kh := 0; kh < kernelH; kh++ {
+
+							for kw := 0; kw < kernelW; kw++ {
+
+								ih := oh*strideH + kh - padH
+								iw := ow*strideW + kw - padW
+
+								if ih < 0 || ih >= height {
+									continue
+								}
+
+								if iw < 0 || iw >= width {
+									continue
+								}
+
+								dw.Set(
+									dw.At(oc, ic, kh, kw)+
+										g*t.At(n, ic, ih, iw),
+									oc,
+									ic,
+									kh,
+									kw,
+								)
+
+								dx.Set(
+									dx.At(n, ic, ih, iw)+
+										g*weight.At(oc, ic, kh, kw),
+									n,
+									ic,
+									ih,
+									iw,
+								)
+
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return dx, dw, db
+}
+func (t Tensor) MaxPool2D(
+	kernelH, kernelW,
+	strideH, strideW int,
+) (Tensor, []int) {
+
+	dims := t.Shape().Values()
+
+	batch := dims[0]
+	channels := dims[1]
+	height := dims[2]
+	width := dims[3]
+
+	outH := (height-kernelH)/strideH + 1
+	outW := (width-kernelW)/strideW + 1
+
+	out := New(shape.New(batch, channels, outH, outW))
+
+	argmax := make([]int, batch*channels*outH*outW)
+
+	index := 0
+
+	for n := 0; n < batch; n++ {
+
+		for c := 0; c < channels; c++ {
+
+			for oh := 0; oh < outH; oh++ {
+
+				for ow := 0; ow < outW; ow++ {
+
+					maxValue := float32(math.Inf(-1))
+					maxIndex := 0
+
+					for kh := 0; kh < kernelH; kh++ {
+
+						for kw := 0; kw < kernelW; kw++ {
+
+							ih := oh*strideH + kh
+							iw := ow*strideW + kw
+
+							v := t.At(n, c, ih, iw)
+
+							if v > maxValue {
+
+								maxValue = v
+
+								maxIndex =
+									((n*channels+c)*height+ih)*width + iw
+							}
+						}
+					}
+
+					out.Set(maxValue, n, c, oh, ow)
+
+					argmax[index] = maxIndex
+
+					index++
+				}
+			}
+		}
+	}
+
+	return out, argmax
+}
+func (t Tensor) MaxPool2DBackward(
+	grad Tensor,
+	argmax []int,
+) Tensor {
+
+	dx := New(t.Shape())
+
+	dims := grad.Shape().Values()
+
+	batch := dims[0]
+	channels := dims[1]
+	outH := dims[2]
+	outW := dims[3]
+
+	index := 0
+
+	for n := 0; n < batch; n++ {
+
+		for c := 0; c < channels; c++ {
+
+			for h := 0; h < outH; h++ {
+
+				for w := 0; w < outW; w++ {
+
+					i := argmax[index]
+
+					dx.FlatSet(
+						i,
+						dx.FlatAt(i)+grad.At(n, c, h, w),
+					)
+
+					index++
+				}
+			}
+		}
+	}
+
+	return dx
+}
+func (t Tensor) AvgPool2D(
+	kernelH, kernelW,
+	strideH, strideW int,
+) Tensor {
+
+	dims := t.Shape().Values()
+
+	batch := dims[0]
+	channels := dims[1]
+	height := dims[2]
+	width := dims[3]
+
+	outH := (height-kernelH)/strideH + 1
+	outW := (width-kernelW)/strideW + 1
+
+	out := New(shape.New(batch, channels, outH, outW))
+
+	scale := float32(1.0 / float32(kernelH*kernelW))
+
+	for n := 0; n < batch; n++ {
+
+		for c := 0; c < channels; c++ {
+
+			for oh := 0; oh < outH; oh++ {
+
+				for ow := 0; ow < outW; ow++ {
+
+					sum := float32(0)
+
+					for kh := 0; kh < kernelH; kh++ {
+
+						for kw := 0; kw < kernelW; kw++ {
+
+							ih := oh*strideH + kh
+							iw := ow*strideW + kw
+
+							sum += t.At(n, c, ih, iw)
+						}
+					}
+
+					out.Set(sum*scale, n, c, oh, ow)
+				}
+			}
+		}
+	}
+
+	return out
+}
+func (t Tensor) AvgPool2DBackward(
+	grad Tensor,
+	kernelH, kernelW,
+	strideH, strideW int,
+) Tensor {
+
+	dx := New(t.Shape())
+
+	dims := t.Shape().Values()
+
+	batch := dims[0]
+	channels := dims[1]
+
+	outH := grad.Shape().Values()[2]
+	outW := grad.Shape().Values()[3]
+
+	scale := float32(1.0 / float32(kernelH*kernelW))
+
+	for n := 0; n < batch; n++ {
+
+		for c := 0; c < channels; c++ {
+
+			for oh := 0; oh < outH; oh++ {
+
+				for ow := 0; ow < outW; ow++ {
+
+					g := grad.At(n, c, oh, ow) * scale
+
+					for kh := 0; kh < kernelH; kh++ {
+
+						for kw := 0; kw < kernelW; kw++ {
+
+							ih := oh*strideH + kh
+							iw := ow*strideW + kw
+
+							dx.Set(
+								dx.At(n, c, ih, iw)+g,
+								n, c, ih, iw,
+							)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return dx
+}
+func (t Tensor) AdaptiveAvgPool2D(
+	outH, outW int,
+) Tensor {
+
+	dims := t.Shape().Values()
+
+	batch := dims[0]
+	channels := dims[1]
+	inH := dims[2]
+	inW := dims[3]
+
+	out := New(shape.New(batch, channels, outH, outW))
+
+	for n := 0; n < batch; n++ {
+
+		for c := 0; c < channels; c++ {
+
+			for oh := 0; oh < outH; oh++ {
+
+				hStart := oh * inH / outH
+				hEnd := (oh + 1) * inH / outH
+
+				for ow := 0; ow < outW; ow++ {
+
+					wStart := ow * inW / outW
+					wEnd := (ow + 1) * inW / outW
+
+					sum := float32(0)
+
+					count := (hEnd - hStart) * (wEnd - wStart)
+
+					for h := hStart; h < hEnd; h++ {
+
+						for w := wStart; w < wEnd; w++ {
+
+							sum += t.At(n, c, h, w)
+
+						}
+					}
+
+					out.Set(
+						sum/float32(count),
+						n, c, oh, ow,
+					)
+				}
+			}
+		}
+	}
+
+	return out
+}
+func (t Tensor) AdaptiveAvgPool2DBackward(
+	grad Tensor,
+	outH,
+	outW int,
+) Tensor {
+
+	dims := t.Shape().Values()
+
+	batch := dims[0]
+	channels := dims[1]
+	inH := dims[2]
+	inW := dims[3]
+
+	dx := New(t.Shape())
+
+	for n := 0; n < batch; n++ {
+
+		for c := 0; c < channels; c++ {
+
+			for oh := 0; oh < outH; oh++ {
+
+				hStart := oh * inH / outH
+				hEnd := (oh + 1) * inH / outH
+
+				for ow := 0; ow < outW; ow++ {
+
+					wStart := ow * inW / outW
+					wEnd := (ow + 1) * inW / outW
+
+					g := grad.At(n, c, oh, ow)
+
+					scale := g / float32(
+						(hEnd-hStart)*(wEnd-wStart),
+					)
+
+					for h := hStart; h < hEnd; h++ {
+
+						for w := wStart; w < wEnd; w++ {
+
+							dx.Set(
+								dx.At(n, c, h, w)+scale,
+								n, c, h, w,
+							)
+
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return dx
+}
+func (t Tensor) AdaptiveMaxPool2D(
+	outH, outW int,
+) (Tensor, []int) {
+
+	dims := t.Shape().Values()
+
+	if len(dims) != 4 {
+		panic("AdaptiveMaxPool2D expects NCHW tensor")
+	}
+
+	batch := dims[0]
+	channels := dims[1]
+	inH := dims[2]
+	inW := dims[3]
+
+	out := New(shape.New(batch, channels, outH, outW))
+
+	argmax := make([]int, batch*channels*outH*outW)
+
+	index := 0
+
+	for n := 0; n < batch; n++ {
+		for c := 0; c < channels; c++ {
+
+			for oh := 0; oh < outH; oh++ {
+
+				hStart := (oh * inH) / outH
+				hEnd := ((oh + 1) * inH) / outH
+
+				for ow := 0; ow < outW; ow++ {
+
+					wStart := (ow * inW) / outW
+					wEnd := ((ow + 1) * inW) / outW
+
+					maxVal := float32(math.Inf(-1))
+					maxIdx := 0
+
+					for h := hStart; h < hEnd; h++ {
+						for w := wStart; w < wEnd; w++ {
+
+							v := t.At(n, c, h, w)
+
+							if v > maxVal {
+								maxVal = v
+								maxIdx = ((n*channels+c)*inH+h)*inW + w
+							}
+						}
+					}
+
+					out.Set(maxVal, n, c, oh, ow)
+					argmax[index] = maxIdx
+					index++
+				}
+			}
+		}
+	}
+
+	return out, argmax
+}
+func (t Tensor) AdaptiveMaxPool2DBackward(
+	grad Tensor,
+	argmax []int,
+) Tensor {
+
+	dx := New(t.Shape())
+
+	dims := grad.Shape().Values()
+
+	batch := dims[0]
+	channels := dims[1]
+	outH := dims[2]
+	outW := dims[3]
+
+	index := 0
+
+	for n := 0; n < batch; n++ {
+		for c := 0; c < channels; c++ {
+			for h := 0; h < outH; h++ {
+				for w := 0; w < outW; w++ {
+
+					inputIndex := argmax[index]
+
+					old := dx.FlatAt(inputIndex)
+
+					dx.FlatSet(
+						inputIndex,
+						old+grad.At(n, c, h, w),
+					)
+
+					index++
+				}
+			}
+		}
+	}
+
+	return dx
+}
+func (t Tensor) ConvTranspose2D(
+	weight Tensor,
+	bias Tensor,
+	strideH,
+	strideW,
+	paddingH,
+	paddingW int,
+) Tensor {
+
+	inShape := t.Shape().Values()
+	wShape := weight.Shape().Values()
+
+	batch := inShape[0]
+	inC := inShape[1]
+	inH := inShape[2]
+	inW := inShape[3]
+
+	outC := wShape[1]
+	kernelH := wShape[2]
+	kernelW := wShape[3]
+
+	outH := (inH-1)*strideH - 2*paddingH + kernelH
+	outW := (inW-1)*strideW - 2*paddingW + kernelW
+
+	out := New(shape.New(
+		batch,
+		outC,
+		outH,
+		outW,
+	))
+
+	for n := 0; n < batch; n++ {
+
+		for ic := 0; ic < inC; ic++ {
+
+			for ih := 0; ih < inH; ih++ {
+
+				for iw := 0; iw < inW; iw++ {
+
+					input := t.At(
+						n,
+						ic,
+						ih,
+						iw,
+					)
+
+					for oc := 0; oc < outC; oc++ {
+
+						for kh := 0; kh < kernelH; kh++ {
+
+							for kw := 0; kw < kernelW; kw++ {
+
+								oh :=
+									ih*strideH +
+										kh -
+										paddingH
+
+								ow :=
+									iw*strideW +
+										kw -
+										paddingW
+
+								if oh < 0 ||
+									oh >= outH ||
+									ow < 0 ||
+									ow >= outW {
+
+									continue
+								}
+
+								old := out.At(
+									n,
+									oc,
+									oh,
+									ow,
+								)
+
+								old +=
+									input *
+										weight.At(
+											ic,
+											oc,
+											kh,
+											kw,
+										)
+
+								out.Set(
+									old,
+									n,
+									oc,
+									oh,
+									ow,
+								)
+
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	for n := 0; n < batch; n++ {
+
+		for oc := 0; oc < outC; oc++ {
+
+			b := bias.At(oc)
+
+			for h := 0; h < outH; h++ {
+
+				for w := 0; w < outW; w++ {
+
+					out.Set(
+						out.At(
+							n,
+							oc,
+							h,
+							w,
+						)+b,
+						n,
+						oc,
+						h,
+						w,
+					)
+
+				}
+			}
+		}
+	}
+
+	return out
+}
+func (t Tensor) ConvTranspose2DBackward(
+	grad Tensor,
+	weight Tensor,
+	strideH,
+	strideW,
+	paddingH,
+	paddingW int,
+) (Tensor, Tensor, Tensor) {
+
+	inShape := t.Shape().Values()
+	wShape := weight.Shape().Values()
+	gShape := grad.Shape().Values()
+
+	batch := inShape[0]
+	inC := inShape[1]
+	inH := inShape[2]
+	inW := inShape[3]
+
+	outC := wShape[1]
+	kernelH := wShape[2]
+	kernelW := wShape[3]
+
+	outH := gShape[2]
+	outW := gShape[3]
+
+	dx := New(t.Shape())
+	dw := New(weight.Shape())
+	db := New(shape.New(outC))
+
+	// db
+	for n := 0; n < batch; n++ {
+		for oc := 0; oc < outC; oc++ {
+			sum := db.At(oc)
+
+			for oh := 0; oh < outH; oh++ {
+				for ow := 0; ow < outW; ow++ {
+					sum += grad.At(n, oc, oh, ow)
+				}
+			}
+
+			db.Set(sum, oc)
+		}
+	}
+
+	// dx + dw
+	for n := 0; n < batch; n++ {
+
+		for ic := 0; ic < inC; ic++ {
+
+			for ih := 0; ih < inH; ih++ {
+
+				for iw := 0; iw < inW; iw++ {
+
+					for oc := 0; oc < outC; oc++ {
+
+						for kh := 0; kh < kernelH; kh++ {
+
+							for kw := 0; kw < kernelW; kw++ {
+
+								oh := ih*strideH + kh - paddingH
+								ow := iw*strideW + kw - paddingW
+
+								if oh < 0 ||
+									oh >= outH ||
+									ow < 0 ||
+									ow >= outW {
+									continue
+								}
+
+								g := grad.At(
+									n,
+									oc,
+									oh,
+									ow,
+								)
+
+								// dWeight
+								dw.Set(
+									dw.At(ic, oc, kh, kw)+
+										t.At(n, ic, ih, iw)*g,
+									ic,
+									oc,
+									kh,
+									kw,
+								)
+
+								// dInput
+								dx.Set(
+									dx.At(n, ic, ih, iw)+
+										weight.At(ic, oc, kh, kw)*g,
+									n,
+									ic,
+									ih,
+									iw,
+								)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return dx, dw, db
+}
+func reflectIndex(index, size int) int {
+	if size <= 1 {
+		return 0
+	}
+	for index < 0 || index >= size {
+		if index < 0 {
+			index = -index
+		}
+		if index >= size {
+			index = 2*size - index - 2
+		}
+	}
+	return index
+}
+func clamp(v, min, max int) int {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
+}
+func (t Tensor) ReflectionPad2D(
+	left,
+	right,
+	top,
+	bottom int,
+) Tensor {
+
+	d := t.Shape().Values()
+
+	if len(d) != 4 {
+		panic("ReflectionPad2D expects NCHW tensor")
+	}
+
+	n := d[0]
+	c := d[1]
+	h := d[2]
+	w := d[3]
+
+	out := New(shape.New(
+		n,
+		c,
+		h+top+bottom,
+		w+left+right,
+	))
+	for bn := 0; bn < n; bn++ {
+
+		for ch := 0; ch < c; ch++ {
+
+			for y := 0; y < h+top+bottom; y++ {
+
+				for x := 0; x < w+left+right; x++ {
+
+					iy := reflectIndex(y-top, h)
+					ix := reflectIndex(x-left, w)
+
+					out.Set(
+						t.At(bn, ch, iy, ix),
+						bn,
+						ch,
+						y,
+						x,
+					)
+				}
+			}
+		}
+	}
+
+	return out
+}
+func (t Tensor) ReflectionPad2DBackward(
+	grad Tensor,
+	left,
+	right,
+	top,
+	bottom int,
+) Tensor {
+
+	inShape := t.Shape().Values()
+
+	n := inShape[0]
+	c := inShape[1]
+	h := inShape[2]
+	w := inShape[3]
+
+	dx := New(t.Shape())
+
+	reflectIndex := func(i, size int) int {
+
+		if i < 0 {
+			return -i
+		}
+
+		if i >= size {
+			return 2*size - i - 2
+		}
+
+		return i
+	}
+
+	for bn := 0; bn < n; bn++ {
+
+		for ch := 0; ch < c; ch++ {
+
+			for y := 0; y < h+top+bottom; y++ {
+
+				for x := 0; x < w+left+right; x++ {
+
+					iy := reflectIndex(y-top, h)
+					ix := reflectIndex(x-left, w)
+
+					dx.Set(
+						dx.At(bn, ch, iy, ix)+
+							grad.At(bn, ch, y, x),
+						bn,
+						ch,
+						iy,
+						ix,
+					)
+				}
+			}
+		}
+	}
+
+	return dx
+}
+func (t Tensor) ReplicationPad2D(
+	left,
+	right,
+	top,
+	bottom int,
+) Tensor {
+
+	d := t.Shape().Values()
+
+	if len(d) != 4 {
+		panic("ReplicationPad2D expects NCHW tensor")
+	}
+
+	n := d[0]
+	c := d[1]
+	h := d[2]
+	w := d[3]
+
+	out := New(shape.New(
+		n,
+		c,
+		h+top+bottom,
+		w+left+right,
+	))
+	for bn := 0; bn < n; bn++ {
+		for ch := 0; ch < c; ch++ {
+
+			for y := 0; y < h+top+bottom; y++ {
+
+				for x := 0; x < w+left+right; x++ {
+
+					iy := clamp(y-top, 0, h-1)
+					ix := clamp(x-left, 0, w-1)
+
+					out.Set(
+						t.At(bn, ch, iy, ix),
+						bn,
+						ch,
+						y,
+						x,
+					)
+				}
+			}
+		}
+	}
+
+	return out
+}
+func (t Tensor) ReplicationPad2DBackward(
+	grad Tensor,
+	left,
+	right,
+	top,
+	bottom int,
+) Tensor {
+
+	d := t.Shape().Values()
+
+	n := d[0]
+	c := d[1]
+	h := d[2]
+	w := d[3]
+
+	dx := New(t.Shape())
+
+	clamp := func(v, min, max int) int {
+		if v < min {
+			return min
+		}
+		if v > max {
+			return max
+		}
+		return v
+	}
+
+	for bn := 0; bn < n; bn++ {
+
+		for ch := 0; ch < c; ch++ {
+
+			for y := 0; y < h+top+bottom; y++ {
+
+				for x := 0; x < w+left+right; x++ {
+
+					iy := clamp(y-top, 0, h-1)
+					ix := clamp(x-left, 0, w-1)
+
+					dx.Set(
+						dx.At(bn, ch, iy, ix)+
+							grad.At(bn, ch, y, x),
+						bn,
+						ch,
+						iy,
+						ix,
+					)
+				}
+			}
+		}
+	}
+
+	return dx
+}
+func (t Tensor) PixelShuffle(upscale int) Tensor {
+
+	dims := t.Shape().Values()
+
+	if len(dims) != 4 {
+		panic("PixelShuffle expects NCHW tensor")
+	}
+
+	n := dims[0]
+	cin := dims[1]
+	h := dims[2]
+	w := dims[3]
+
+	if cin%(upscale*upscale) != 0 {
+		panic("invalid channel count")
+	}
+
+	cout := cin / (upscale * upscale)
+
+	out := New(shape.New(
+		n,
+		cout,
+		h*upscale,
+		w*upscale,
+	))
+
+	for bn := 0; bn < n; bn++ {
+
+		for co := 0; co < cout; co++ {
+
+			for y := 0; y < h; y++ {
+
+				for x := 0; x < w; x++ {
+
+					for ry := 0; ry < upscale; ry++ {
+
+						for rx := 0; rx < upscale; rx++ {
+
+							ci :=
+								co*upscale*upscale +
+									ry*upscale +
+									rx
+
+							out.Set(
+								t.At(
+									bn,
+									ci,
+									y,
+									x,
+								),
+								bn,
+								co,
+								y*upscale+ry,
+								x*upscale+rx,
+							)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return out
+}
+func (t Tensor) PixelShuffleBackward(
+	grad Tensor,
+	upscale int,
+) Tensor {
+
+	d := t.Shape().Values()
+
+	n := d[0]
+	cin := d[1]
+	h := d[2]
+	w := d[3]
+
+	cout := cin / (upscale * upscale)
+
+	dx := New(t.Shape())
+
+	for bn := 0; bn < n; bn++ {
+
+		for co := 0; co < cout; co++ {
+
+			for y := 0; y < h; y++ {
+
+				for x := 0; x < w; x++ {
+
+					for ry := 0; ry < upscale; ry++ {
+
+						for rx := 0; rx < upscale; rx++ {
+
+							ci :=
+								co*upscale*upscale +
+									ry*upscale +
+									rx
+
+							dx.Set(
+								grad.At(
+									bn,
+									co,
+									y*upscale+ry,
+									x*upscale+rx,
+								),
+								bn,
+								ci,
+								y,
+								x,
+							)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return dx
+}
+func (t Tensor) PixelUnshuffle(downscale int) Tensor {
+
+	dims := t.Shape().Values()
+
+	if len(dims) != 4 {
+		panic("PixelUnshuffle expects NCHW tensor")
+	}
+
+	n := dims[0]
+	cin := dims[1]
+	h := dims[2]
+	w := dims[3]
+
+	if h%downscale != 0 || w%downscale != 0 {
+		panic("height and width must be divisible by downscale")
+	}
+
+	cout := cin * downscale * downscale
+	outh := h / downscale
+	outw := w / downscale
+
+	out := New(shape.New(
+		n,
+		cout,
+		outh,
+		outw,
+	))
+
+	for bn := 0; bn < n; bn++ {
+
+		for co := 0; co < cin; co++ {
+
+			for oy := 0; oy < outh; oy++ {
+
+				for ox := 0; ox < outw; ox++ {
+
+					for ry := 0; ry < downscale; ry++ {
+
+						for rx := 0; rx < downscale; rx++ {
+
+							ci :=
+								co*downscale*downscale +
+									ry*downscale +
+									rx
+
+							out.Set(
+								t.At(
+									bn,
+									co,
+									oy*downscale+ry,
+									ox*downscale+rx,
+								),
+								bn,
+								ci,
+								oy,
+								ox,
+							)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return out
+}
+func (t Tensor) PixelUnshuffleBackward(
+	grad Tensor,
+	downscale int,
+) Tensor {
+
+	dims := t.Shape().Values()
+
+	n := dims[0]
+	cin := dims[1]
+	h := dims[2]
+	w := dims[3]
+
+	dx := New(t.Shape())
+
+	cout := cin * downscale * downscale
+
+	_ = cout
+
+	for bn := 0; bn < n; bn++ {
+
+		for co := 0; co < cin; co++ {
+
+			for oy := 0; oy < h/downscale; oy++ {
+
+				for ox := 0; ox < w/downscale; ox++ {
+
+					for ry := 0; ry < downscale; ry++ {
+
+						for rx := 0; rx < downscale; rx++ {
+
+							ci :=
+								co*downscale*downscale +
+									ry*downscale +
+									rx
+
+							dx.Set(
+								grad.At(
+									bn,
+									ci,
+									oy,
+									ox,
+								),
+								bn,
+								co,
+								oy*downscale+ry,
+								ox*downscale+rx,
+							)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return dx
+}
+
 // func indicesToLinear(indices []int, sh shape.Shape) int {
 // 	dims := sh.Values()
 // 	stride := 1

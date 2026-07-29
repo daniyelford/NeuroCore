@@ -46,6 +46,7 @@ type MatMul struct {
 }
 type Flatten struct {
 	Base
+	StartDim int
 }
 type Div struct {
 	Base
@@ -74,7 +75,34 @@ type MaxPool2D struct {
 	StrideW int
 	ArgMax  []int
 }
+type AvgPool2D struct {
+	Base
+	KernelH int
+	KernelW int
+	StrideH int
+	StrideW int
+}
+type AdaptiveAvgPool2D struct {
+	Base
+	OutputH int
+	OutputW int
+}
+type AdaptiveMaxPool2D struct {
+	Base
+	OutputH int
+	OutputW int
+	ArgMax  []int
+}
 type Conv2D struct {
+	Base
+	StrideH  int
+	StrideW  int
+	PaddingH int
+	PaddingW int
+	KernelH  int
+	KernelW  int
+}
+type ConvTranspose2D struct {
 	Base
 	StrideH  int
 	StrideW  int
@@ -139,4 +167,43 @@ type RNN struct {
 	InputSize  int
 	HiddenSize int
 	Activation string
+}
+type L1 struct {
+	Base
+}
+type SmoothL1 struct {
+	Base
+	Beta float32
+}
+type Huber struct {
+	Base
+	Delta float32
+}
+type BCE struct {
+	Base
+}
+type BCEWithLogits struct {
+	Base
+}
+type ReflectionPad2D struct {
+	Base
+	PadTop    int
+	PadBottom int
+	PadLeft   int
+	PadRight  int
+}
+type ReplicationPad2D struct {
+	Base
+	Left   int
+	Right  int
+	Top    int
+	Bottom int
+}
+type PixelShuffle struct {
+	Base
+	Scale int
+}
+type PixelUnshuffle struct {
+	Base
+	Scale int
 }
