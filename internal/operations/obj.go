@@ -85,7 +85,7 @@ type Conv2D struct {
 }
 type LeakyReLU struct {
 	Base
-	NegativeSlope float32
+	Alpha float32
 }
 type ELU struct {
 	Base

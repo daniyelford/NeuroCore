@@ -7,12 +7,10 @@ import (
 )
 
 func NewReLU() *ReLU {
-	return &ReLU{
-		BaseModule: nn.NewBaseModule("ReLU"),
-	}
+	return &ReLU{BaseModule: nn.NewBaseModule("ReLU")}
 }
 func (r *ReLU) Forward(input *autograd.Variable) (*autograd.Variable, error) {
-	op := &operations.ReLU{}
+	op := operations.NewReLU()
 	out, err := op.Forward(input)
 	return out, err
 }
@@ -23,12 +21,10 @@ func (r *ReLU) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{}
 }
 func NewSigmoid() *Sigmoid {
-	return &Sigmoid{
-		BaseModule: nn.NewBaseModule("Sigmoid"),
-	}
+	return &Sigmoid{BaseModule: nn.NewBaseModule("Sigmoid")}
 }
 func (s *Sigmoid) Forward(input *autograd.Variable) *autograd.Variable {
-	op := &operations.Sigmoid{}
+	op := operations.NewSigmoid()
 	out, err := op.Forward(input)
 	if err != nil {
 		panic(err)
@@ -42,12 +38,10 @@ func (s *Sigmoid) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{}
 }
 func NewTanh() *Tanh {
-	return &Tanh{
-		BaseModule: nn.NewBaseModule("Tanh"),
-	}
+	return &Tanh{BaseModule: nn.NewBaseModule("Tanh")}
 }
 func (t *Tanh) Forward(input *autograd.Variable) *autograd.Variable {
-	op := &operations.Tanh{}
+	op := operations.NewTanh()
 	out, err := op.Forward(input)
 	if err != nil {
 		panic(err)
@@ -61,15 +55,10 @@ func (t *Tanh) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{}
 }
 func NewLeakyReLU(alpha float32) *LeakyReLU {
-	return &LeakyReLU{
-		BaseModule: nn.NewBaseModule("LeakyReLU"),
-		Alpha:      alpha,
-	}
+	return &LeakyReLU{BaseModule: nn.NewBaseModule("LeakyReLU"), Alpha: alpha}
 }
-func (l *LeakyReLU) Forward(
-	input *autograd.Variable,
-) *autograd.Variable {
-	op := operations.LeakyReLU{NegativeSlope: l.Alpha}
+func (l *LeakyReLU) Forward(input *autograd.Variable) *autograd.Variable {
+	op := operations.NewLeakyReLU(l.Alpha)
 	out, err := op.Forward(input)
 	if err != nil {
 		panic(err)
@@ -83,13 +72,10 @@ func (l *LeakyReLU) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{}
 }
 func NewELU(alpha float32) *ELU {
-	return &ELU{
-		BaseModule: nn.NewBaseModule("ELU"),
-		Alpha:      alpha,
-	}
+	return &ELU{BaseModule: nn.NewBaseModule("ELU"), Alpha: alpha}
 }
 func (e *ELU) Forward(input *autograd.Variable) *autograd.Variable {
-	op := operations.ELU{Alpha: e.Alpha}
+	op := operations.NewELU(e.Alpha)
 	out, err := op.Forward(input)
 	if err != nil {
 		panic(err)
@@ -103,12 +89,10 @@ func (e *ELU) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{}
 }
 func NewGELU() *GELU {
-	return &GELU{
-		BaseModule: nn.NewBaseModule("GELU"),
-	}
+	return &GELU{BaseModule: nn.NewBaseModule("GELU")}
 }
 func (g *GELU) Forward(input *autograd.Variable) *autograd.Variable {
-	op := operations.GELU{}
+	op := operations.NewGELU()
 	out, err := op.Forward(input)
 	if err != nil {
 		panic(err)
@@ -125,7 +109,7 @@ func NewSoftplus() *Softplus {
 	return &Softplus{BaseModule: nn.NewBaseModule("Softplus")}
 }
 func (s *Softplus) Forward(input *autograd.Variable) *autograd.Variable {
-	op := operations.Softplus{}
+	op := operations.NewSoftplus()
 	out, err := op.Forward(input)
 	if err != nil {
 		panic(err)
@@ -142,14 +126,11 @@ func NewSwish() *Swish {
 	return &Swish{BaseModule: nn.NewBaseModule("Swish")}
 }
 func (s *Swish) Forward(input *autograd.Variable) *autograd.Variable {
-
-	op := operations.Swish{}
-
+	op := operations.NewSwish()
 	out, err := op.Forward(input)
 	if err != nil {
 		panic(err)
 	}
-
 	return out
 }
 func (s *Swish) Parameters() []nn.Parameter {
@@ -162,14 +143,11 @@ func NewMish() *Mish {
 	return &Mish{BaseModule: nn.NewBaseModule("Mish")}
 }
 func (m *Mish) Forward(input *autograd.Variable) *autograd.Variable {
-
-	op := operations.Mish{}
-
+	op := operations.NewMish()
 	out, err := op.Forward(input)
 	if err != nil {
 		panic(err)
 	}
-
 	return out
 }
 func (m *Mish) Parameters() []nn.Parameter {
@@ -182,14 +160,11 @@ func NewHardSigmoid() *HardSigmoid {
 	return &HardSigmoid{BaseModule: nn.NewBaseModule("HardSigmoid")}
 }
 func (h *HardSigmoid) Forward(input *autograd.Variable) *autograd.Variable {
-
-	op := operations.HardSigmoid{}
-
+	op := operations.NewHardSigmoid()
 	out, err := op.Forward(input)
 	if err != nil {
 		panic(err)
 	}
-
 	return out
 }
 func (h *HardSigmoid) Parameters() []nn.Parameter {
@@ -202,14 +177,11 @@ func NewHardSwish() *HardSwish {
 	return &HardSwish{BaseModule: nn.NewBaseModule("HardSwish")}
 }
 func (h *HardSwish) Forward(input *autograd.Variable) *autograd.Variable {
-
-	op := operations.HardSwish{}
-
+	op := operations.NewHardSwish()
 	out, err := op.Forward(input)
 	if err != nil {
 		panic(err)
 	}
-
 	return out
 }
 func (h *HardSwish) Parameters() []nn.Parameter {
@@ -222,31 +194,21 @@ func NewSoftmax(axis int) *Softmax {
 	return &Softmax{BaseModule: nn.NewBaseModule("Softmax"), Axis: axis}
 }
 func (s *Softmax) Forward(input *autograd.Variable) *autograd.Variable {
-
-	op := operations.Softmax{
-		Axis: s.Axis,
-	}
-
+	op := operations.NewSoftmax(s.Axis)
 	out, err := op.Forward(input)
 	if err != nil {
 		panic(err)
 	}
-
 	return out
 }
 func NewLogSoftmax(axis int) *LogSoftmax {
 	return &LogSoftmax{BaseModule: nn.NewBaseModule("LogSoftmax"), Axis: axis}
 }
 func (l *LogSoftmax) Forward(input *autograd.Variable) *autograd.Variable {
-
-	op := operations.LogSoftmax{
-		Axis: l.Axis,
-	}
-
+	op := operations.NewLogSoftmax(l.Axis)
 	out, err := op.Forward(input)
 	if err != nil {
 		panic(err)
 	}
-
 	return out
 }

@@ -255,69 +255,29 @@ func (e *Embedding) Forward(input *autograd.Variable) *autograd.Variable {
 	}
 	return autograd.NewVariable(out, input.RequiresGrad())
 }
-
-//	func NewDropout(p float32) *Dropout {
-//		return DropoutNew(p)
-//	}
 func NewDropout(p float32) *Dropout {
-
-	return &Dropout{
-		BaseModule: NewBaseModule("Dropout"),
-		P:          p,
-		Training:   true,
-	}
+	return &Dropout{BaseModule: NewBaseModule("Dropout"), P: p, Training: true}
 }
-func (d *Dropout) Forward(
-	input *autograd.Variable,
-) *autograd.Variable {
-
-	op := operations.NewDropout(
-		d.P,
-		d.Training,
-	)
-
+func (d *Dropout) Forward(input *autograd.Variable) *autograd.Variable {
+	op := operations.NewDropout(d.P, d.Training)
 	out, err := op.Forward(input)
-
 	if err != nil {
 		panic(err)
 	}
-
 	return out
 }
-
-//	func (d *Dropout) Forward(input *autograd.Variable) *autograd.Variable {
-//		if !d.Training() {
-//			return input
-//		}
-//		data := input.Data()
-//		out := data.Clone()
-//		scale := float32(1.0)
-//		if d.Probability < 1 {
-//			scale = 1 / (1 - d.Probability)
-//		}
-//		for i := 0; i < out.Len(); i++ {
-//			if rand.Float32() < d.Probability {
-//				out.FlatSet(i, 0)
-//			} else {
-//				out.FlatSet(i, out.FlatAt(i)*scale)
-//			}
-//		}
-//		return autograd.NewVariable(out, input.RequiresGrad())
-//	}
 func (d *Dropout) Parameters() []Parameter {
 	return nil
 }
-
-//	func (d Dropout) Children() []Module {
-//		return nil
-//	}
+func (d Dropout) Children() []Module {
+	return nil
+}
 func (d *Dropout) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{}
 }
 func (d *Dropout) Train() {
 	d.Training = true
 }
-
 func (d *Dropout) Eval() {
 	d.Training = false
 }
@@ -432,46 +392,14 @@ func LayerNormNew(features int) LayerNorm {
 		Eps:        1e-5,
 	}
 }
-func (l *LayerNorm) Forward(
-	input *autograd.Variable,
-) *autograd.Variable {
-
+func (l *LayerNorm) Forward(input *autograd.Variable) *autograd.Variable {
 	op := operations.NewLayerNorm(l.Eps)
-
-	out, err := op.Forward(
-		input,
-		l.Gamma.Value,
-		l.Beta.Value,
-	)
-
+	out, err := op.Forward(input, l.Gamma.Value, l.Beta.Value)
 	if err != nil {
 		panic(err)
 	}
-
 	return out
 }
-
-//	func (l LayerNorm) Forward(input *autograd.Variable) *autograd.Variable {
-//		x := input.Data()
-//		var mean float32
-//		for i := 0; i < x.Len(); i++ {
-//			mean += x.FlatAt(i)
-//		}
-//		mean /= float32(x.Len())
-//		var variance float32
-//		for i := 0; i < x.Len(); i++ {
-//			diff := x.FlatAt(i) - mean
-//			variance += diff * diff
-//		}
-//		variance /= float32(x.Len())
-//		out := tensor.New(x.Shape())
-//		for i := 0; i < x.Len(); i++ {
-//			n := (x.FlatAt(i) - mean) / float32(math.Sqrt(float64(variance+l.Eps)))
-//			v := n*l.Gamma.Value.Data().FlatAt(i) + l.Beta.Value.Data().FlatAt(i)
-//			out.FlatSet(i, v)
-//		}
-//		return autograd.NewVariable(out, true)
-//	}
 func (l LayerNorm) Parameters() []Parameter {
 	return []Parameter{l.Gamma, l.Beta}
 }
@@ -534,6 +462,49 @@ func (c *Conv2D) Forward(input *autograd.Variable) *autograd.Variable {
 	return autograd.NewVariable(out, true)
 }
 
+//	func NewDropout(p float32) *Dropout {
+//		return DropoutNew(p)
+//	}
+//	func (d *Dropout) Forward(input *autograd.Variable) *autograd.Variable {
+//		if !d.Training() {
+//			return input
+//		}
+//		data := input.Data()
+//		out := data.Clone()
+//		scale := float32(1.0)
+//		if d.Probability < 1 {
+//			scale = 1 / (1 - d.Probability)
+//		}
+//		for i := 0; i < out.Len(); i++ {
+//			if rand.Float32() < d.Probability {
+//				out.FlatSet(i, 0)
+//			} else {
+//				out.FlatSet(i, out.FlatAt(i)*scale)
+//			}
+//		}
+//		return autograd.NewVariable(out, input.RequiresGrad())
+//	}
+//	func (l LayerNorm) Forward(input *autograd.Variable) *autograd.Variable {
+//		x := input.Data()
+//		var mean float32
+//		for i := 0; i < x.Len(); i++ {
+//			mean += x.FlatAt(i)
+//		}
+//		mean /= float32(x.Len())
+//		var variance float32
+//		for i := 0; i < x.Len(); i++ {
+//			diff := x.FlatAt(i) - mean
+//			variance += diff * diff
+//		}
+//		variance /= float32(x.Len())
+//		out := tensor.New(x.Shape())
+//		for i := 0; i < x.Len(); i++ {
+//			n := (x.FlatAt(i) - mean) / float32(math.Sqrt(float64(variance+l.Eps)))
+//			v := n*l.Gamma.Value.Data().FlatAt(i) + l.Beta.Value.Data().FlatAt(i)
+//			out.FlatSet(i, v)
+//		}
+//		return autograd.NewVariable(out, true)
+//	}
 // func NewConv2D(
 // 	inChannels int,
 // 	outChannels int,
