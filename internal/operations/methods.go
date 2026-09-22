@@ -1002,9 +1002,7 @@ func (op *L1) Forward(inputs ...*autograd.Variable) (*autograd.Variable, error) 
 		target,
 	), nil
 }
-func (op *L1) Backward(
-	grad tensor.Tensor,
-) ([]tensor.Tensor, error) {
+func (op *L1) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
 	pred := op.Input(0).Data()
 	target := op.Input(1).Data()
 	scale := float32(1.0 / float32(pred.Len()))

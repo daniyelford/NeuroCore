@@ -162,11 +162,19 @@ type Embedding struct {
 	NumEmbeddings int
 	EmbeddingDim  int
 }
-type RNN struct {
+type RNNCell struct {
 	Base
 	InputSize  int
 	HiddenSize int
 	Activation string
+}
+type RNN struct {
+	Base
+	InputSize     int
+	HiddenSize    int
+	BatchFirst    bool
+	Bidirectional bool
+	Nonlinearity  string
 }
 type L1 struct {
 	Base
