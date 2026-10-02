@@ -3,12 +3,19 @@ Package autograd implements automatic differentiation.
 */
 package autograd
 
-import "github.com/daniyelford/neurocore/internal/core/tensor"
+import (
+	"errors"
+
+	"github.com/daniyelford/neurocore/internal/core/tensor"
+)
 
 var defaultEngine = NewEngine()
 var gradEnabled = true
 
 func CreateNode(op Operation, output *Variable, parents ...*Node) *Node {
+	if output == nil || output.Node() == nil {
+		return nil
+	}
 	node := output.Node()
 	node.Op = op
 	node.Parents = parents
@@ -23,23 +30,36 @@ func Accumulate(v *Variable, grad tensor.Tensor) {
 	v.SetGrad(current.Add(grad))
 }
 func Backward(v *Variable) {
+	if v == nil || v.Node() == nil {
+		panic("autograd: backward called with nil variable or node")
+	}
+
 	root := v.Node()
 	nodes := TopologicalSort(root)
+
 	root.Grad = tensor.New(root.Data.Shape())
 	root.Grad.Fill(1)
+
 	for i := len(nodes) - 1; i >= 0; i-- {
 		node := nodes[i]
-		if node.Op == nil {
+		if node == nil || node.Op == nil {
 			continue
 		}
+
 		grads, err := node.Op.Backward(node.Grad)
 		if err != nil {
 			panic(err)
 		}
+
+		if len(grads) != len(node.Parents) {
+			panic("autograd: backward gradient count does not match parent count")
+		}
+
 		for index, parent := range node.Parents {
-			if !parent.RequiresGrad {
+			if parent == nil || !parent.RequiresGrad {
 				continue
 			}
+
 			Accumulate(VariableFromNode(parent), grads[index])
 		}
 	}
@@ -63,16 +83,32 @@ func NewEngine() *Engine {
 	return &Engine{graph: NewGraph()}
 }
 func (e *Engine) Execute(op Operation, inputs ...*Variable) (*Variable, error) {
+	if e == nil || op == nil {
+		return nil, errors.New("autograd: nil engine or operation")
+	}
+
+	for i, v := range inputs {
+		if v == nil || v.Node() == nil {
+			return nil, errors.New("autograd: nil input variable at index " + string(rune('0'+i)))
+		}
+	}
+
 	out, err := op.Forward(inputs...)
 	if err != nil {
 		return nil, err
 	}
+	if out == nil || out.Node() == nil {
+		return nil, errors.New("autograd: operation returned nil output or node")
+	}
+
 	node := out.Node()
 	node.Op = op
 	node.Parents = make([]*Node, 0, len(inputs))
+
 	for _, v := range inputs {
 		node.Parents = append(node.Parents, v.Node())
 	}
+
 	e.graph.Add(node)
 	return out, nil
 }
@@ -117,18 +153,29 @@ func (v *Variable) ZeroGrad() {
 func TopologicalSort(root *Node) []*Node {
 	result := []*Node{}
 	visited := map[*Node]bool{}
+
 	var visit func(*Node)
+
 	visit = func(n *Node) {
+		if n == nil {
+			return
+		}
+
 		if visited[n] {
 			return
 		}
+
 		visited[n] = true
+
 		for _, p := range n.Parents {
 			visit(p)
 		}
+
 		result = append(result, n)
 	}
+
 	visit(root)
+
 	return result
 }
 func (v *Variable) Node() *Node {

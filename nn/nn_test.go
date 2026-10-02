@@ -733,7 +733,8 @@ func TestConv2DStride(t *testing.T) {
 			3,
 			3,
 		)
-
+	conv.Stride = 2
+	conv.Padding = 0
 	out :=
 		conv.Forward(
 			autograd.NewVariable(
@@ -776,7 +777,8 @@ func TestConv2DSamePadding(t *testing.T) {
 			3,
 			3,
 		)
-
+	conv.Stride = 1
+	conv.Padding = 1
 	out :=
 		conv.Forward(
 			autograd.NewVariable(

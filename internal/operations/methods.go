@@ -25,20 +25,32 @@ func (b *Base) Output() *autograd.Variable {
 func (b *Base) SetOutput(v *autograd.Variable) {
 	b.output = v
 }
-func (b *Base) NewOutput(op autograd.Operation, out tensor.Tensor, parents ...*autograd.Variable) *autograd.Variable {
+func (b *Base) NewOutput(
+	op autograd.Operation,
+	out tensor.Tensor,
+	parents ...*autograd.Variable,
+) *autograd.Variable {
 	requiresGrad := false
 	nodes := make([]*autograd.Node, len(parents))
+
 	for i, p := range parents {
+		if p == nil || p.Node() == nil {
+			continue
+		}
+
 		nodes[i] = p.Node()
+
 		if p.RequiresGrad() {
 			requiresGrad = true
-			break
 		}
 	}
+
 	v := autograd.NewVariable(out, requiresGrad)
 	v.Node().Parents = nodes
 	v.Node().Op = op
+
 	b.SetOutput(v)
+
 	return v
 }
 func (op *Add) Name() string {
@@ -970,13 +982,134 @@ func (op *RNNCell) Backward(grad tensor.Tensor) ([]tensor.Tensor, error) {
 	Wx := op.Input(2).Data()
 	Wh := op.Input(3).Data()
 	bias := op.Input(4).Data()
-	dx := tensor.New(x.Shape())
-	dh := tensor.New(hPrev.Shape())
-	dWx := tensor.New(Wx.Shape())
-	dWh := tensor.New(Wh.Shape())
-	db := tensor.New(bias.Shape())
-	_ = grad
-	return []tensor.Tensor{dx, dh, dWx, dWh, db}, nil
+
+	// ------------------------------------------------------------
+	// Recompute pre-activation:
+	//
+	// z = x @ Wx + hPrev @ Wh + bias
+	// ------------------------------------------------------------
+
+	xWx, ok := x.MatMul(Wx)
+	if !ok {
+		return nil, errors.New("rnn backward x @ Wx failed")
+	}
+
+	hWh, ok := hPrev.MatMul(Wh)
+	if !ok {
+		return nil, errors.New("rnn backward hPrev @ Wh failed")
+	}
+
+	z := xWx.Add(hWh)
+
+	z, ok = z.AddBroadcast(bias)
+	if !ok {
+		return nil, errors.New("rnn backward bias broadcast failed")
+	}
+
+	// ------------------------------------------------------------
+	// dZ = dL/dh * activation'(z)
+	// ------------------------------------------------------------
+
+	var dZ tensor.Tensor
+
+	switch op.Activation {
+	case "relu":
+		mask := z.ReLUMask()
+		dZ = grad.Mul(mask)
+
+	default:
+		// h = tanh(z)
+		//
+		// tanh'(z) = 1 - tanh(z)^2
+		//           = 1 - h^2
+		//
+		h := op.Output().Data()
+
+		hSquared := h.Mul(h)
+
+		one := tensor.New(h.Shape())
+		one.Fill(1.0)
+
+		derivative := one.Sub(hSquared)
+
+		dZ = grad.Mul(derivative)
+	}
+
+	// ------------------------------------------------------------
+	// dx = dZ @ Wx^T
+	// ------------------------------------------------------------
+
+	WxT, ok := Wx.Transpose()
+	if !ok {
+		return nil, errors.New("rnn backward cannot transpose Wx")
+	}
+
+	dx, ok := dZ.MatMul(WxT)
+	if !ok {
+		return nil, errors.New("rnn backward dx failed")
+	}
+
+	// ------------------------------------------------------------
+	// dhPrev = dZ @ Wh^T
+	// ------------------------------------------------------------
+
+	WhT, ok := Wh.Transpose()
+	if !ok {
+		return nil, errors.New("rnn backward cannot transpose Wh")
+	}
+
+	dhPrev, ok := dZ.MatMul(WhT)
+	if !ok {
+		return nil, errors.New("rnn backward dhPrev failed")
+	}
+
+	// ------------------------------------------------------------
+	// dWx = x^T @ dZ
+	// ------------------------------------------------------------
+
+	xT, ok := x.Transpose()
+	if !ok {
+		return nil, errors.New("rnn backward cannot transpose x")
+	}
+
+	dWx, ok := xT.MatMul(dZ)
+	if !ok {
+		return nil, errors.New("rnn backward dWx failed")
+	}
+
+	// ------------------------------------------------------------
+	// dWh = hPrev^T @ dZ
+	// ------------------------------------------------------------
+
+	hPrevT, ok := hPrev.Transpose()
+	if !ok {
+		return nil, errors.New("rnn backward cannot transpose hPrev")
+	}
+
+	dWh, ok := hPrevT.MatMul(dZ)
+	if !ok {
+		return nil, errors.New("rnn backward dWh failed")
+	}
+
+	// ------------------------------------------------------------
+	// db = sum(dZ, axis=0)
+	//
+	// For:
+	//   dZ = [batch, hidden]
+	//
+	// result:
+	//   db = [hidden]
+	// ------------------------------------------------------------
+
+	db := dZ.ReduceSumAxis(0)
+
+	return []tensor.Tensor{
+		dx,
+		dhPrev,
+		dWx,
+		dWh,
+		db,
+	}, nil
 }
 func NewL1() *L1 {
 	return &L1{}

@@ -421,6 +421,7 @@ func (l LayerNorm) Parameters() []Parameter {
 func NewConv2D(inChannels int, outChannels int, kernelH int, kernelW int) *Conv2D {
 	w := tensor.New(shape.New(outChannels, inChannels, kernelH, kernelW))
 	b := tensor.New(shape.New(outChannels))
+
 	return &Conv2D{
 		BaseModule:  NewBaseModule("Conv2D"),
 		Weight:      NewParameter(autograd.NewVariable(w, true)),
@@ -431,6 +432,8 @@ func NewConv2D(inChannels int, outChannels int, kernelH int, kernelW int) *Conv2
 		KernelW:     kernelW,
 		Stride:      1,
 		Padding:     0,
+		// Stride:      2,
+		// Padding:     kernelH / 2,
 	}
 }
 func (c *Conv2D) Parameters() []Parameter {
@@ -440,41 +443,25 @@ func (c *Conv2D) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{"weight": c.Weight.Value, "bias": c.Bias.Value}
 }
 func (c *Conv2D) Forward(input *autograd.Variable) *autograd.Variable {
-	x := input.Data()
-	d := x.Shape().Values()
-	if len(d) != 4 {
-		panic("Conv2D expects [N,C,H,W]")
+	op := operations.NewConv2D(
+		c.Stride,
+		c.Stride,
+		c.Padding,
+		c.Padding,
+		c.KernelH,
+		c.KernelW,
+	)
+
+	out, err := op.Forward(
+		input,
+		c.Weight.Value,
+		c.Bias.Value,
+	)
+	if err != nil {
+		panic(err)
 	}
-	n := d[0]
-	h := d[2]
-	w := d[3]
-	outH := (h+2*c.Padding-c.KernelH)/c.Stride + 1
-	outW := (w+2*c.Padding-c.KernelW)/c.Stride + 1
-	out := tensor.New(shape.New(n, c.OutChannels, outH, outW))
-	for b := range n {
-		for oc := range c.OutChannels {
-			for oy := range outH {
-				for ox := range outW {
-					var sum float32
-					for ic := range c.InChannels {
-						for ky := range c.KernelH {
-							for kx := range c.KernelW {
-								iy := oy*c.Stride + ky - c.Padding
-								ix := ox*c.Stride + kx - c.Padding
-								if iy < 0 || ix < 0 || iy >= h || ix >= w {
-									continue
-								}
-								sum += x.At(b, ic, iy, ix) * c.Weight.Value.Data().At(oc, ic, ky, kx)
-							}
-						}
-					}
-					sum += c.Bias.Value.Data().At(oc)
-					out.Set(sum, b, oc, oy, ox)
-				}
-			}
-		}
-	}
-	return autograd.NewVariable(out, true)
+
+	return out
 }
 func NewAvgPool2D(
 	kernelH,
@@ -491,7 +478,6 @@ func NewAvgPool2D(
 		StrideW:    strideW,
 	}
 }
-
 func (m *AvgPool2D) Forward(
 	input *autograd.Variable,
 ) *autograd.Variable {
@@ -811,367 +797,3 @@ func (p *PixelUnshuffle) Parameters() []Parameter {
 func (p *PixelUnshuffle) StateDict() map[string]*autograd.Variable {
 	return map[string]*autograd.Variable{}
 }
-
-//	func NewDropout(p float32) *Dropout {
-//		return DropoutNew(p)
-//	}
-//	func (d *Dropout) Forward(input *autograd.Variable) *autograd.Variable {
-//		if !d.Training() {
-//			return input
-//		}
-//		data := input.Data()
-//		out := data.Clone()
-//		scale := float32(1.0)
-//		if d.Probability < 1 {
-//			scale = 1 / (1 - d.Probability)
-//		}
-//		for i := 0; i < out.Len(); i++ {
-//			if rand.Float32() < d.Probability {
-//				out.FlatSet(i, 0)
-//			} else {
-//				out.FlatSet(i, out.FlatAt(i)*scale)
-//			}
-//		}
-//		return autograd.NewVariable(out, input.RequiresGrad())
-//	}
-//	func (l LayerNorm) Forward(input *autograd.Variable) *autograd.Variable {
-//		x := input.Data()
-//		var mean float32
-//		for i := 0; i < x.Len(); i++ {
-//			mean += x.FlatAt(i)
-//		}
-//		mean /= float32(x.Len())
-//		var variance float32
-//		for i := 0; i < x.Len(); i++ {
-//			diff := x.FlatAt(i) - mean
-//			variance += diff * diff
-//		}
-//		variance /= float32(x.Len())
-//		out := tensor.New(x.Shape())
-//		for i := 0; i < x.Len(); i++ {
-//			n := (x.FlatAt(i) - mean) / float32(math.Sqrt(float64(variance+l.Eps)))
-//			v := n*l.Gamma.Value.Data().FlatAt(i) + l.Beta.Value.Data().FlatAt(i)
-//			out.FlatSet(i, v)
-//		}
-//		return autograd.NewVariable(out, true)
-//	}
-// func NewConv2D(
-// 	inChannels int,
-// 	outChannels int,
-// 	kernelH int,
-// 	kernelW int,
-// 	stride int,
-// 	padding int,
-// ) *Conv2D {
-
-// 	weight :=
-// 		tensor.New(
-// 			shape.New(
-// 				outChannels,
-// 				inChannels,
-// 				kernelH,
-// 				kernelW,
-// 			),
-// 		)
-
-// 	bias :=
-// 		tensor.New(
-// 			shape.New(
-// 				outChannels,
-// 			),
-// 		)
-
-// 	return &Conv2D{
-
-// 		BaseModule: NewBaseModule(),
-
-// 		InChannels: inChannels,
-
-// 		OutChannels: outChannels,
-
-// 		KernelH: kernelH,
-
-// 		KernelW: kernelW,
-
-// 		StrideH: stride,
-
-// 		StrideW: stride,
-
-// 		PaddingH: padding,
-
-// 		PaddingW: padding,
-
-// 		Weight: NewParameter(
-// 			autograd.NewVariable(
-// 				weight,
-// 				true,
-// 			),
-// 		),
-
-// 		Bias: NewParameter(
-// 			autograd.NewVariable(
-// 				bias,
-// 				true,
-// 			),
-// 		),
-// 	}
-// }
-// func (c *Conv2D) Name() string {
-
-// 	return "Conv2D"
-
-// }
-
-// func (c *Conv2D) Parameters() []Parameter {
-
-// 	return []Parameter{
-
-// 		c.Weight,
-
-// 		c.Bias,
-// 	}
-// }
-
-// func (c *Conv2D) StateDict() map[string]*autograd.Variable {
-
-// 	return map[string]*autograd.Variable{
-
-// 		"weight": c.Weight.Value,
-
-// 		"bias": c.Bias.Value,
-// 	}
-// }
-// func (c *Conv2D) Forward(
-// 	input *autograd.Variable,
-// ) *autograd.Variable {
-
-// 	op :=
-// 		operations.NewConv2D(
-// 			c.StrideH,
-// 			c.StrideW,
-// 			c.PaddingH,
-// 			c.PaddingW,
-// 			c.KernelH,
-// 			c.KernelW,
-// 		)
-
-// 	out, err :=
-// 		op.Forward(
-// 			input,
-// 			c.Weight.Value,
-// 			c.Bias.Value,
-// 		)
-
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	return out
-// }
-// func serializeTensor(
-// 	t tensor.Tensor,
-// ) SerializedTensor {
-
-// 	data := make(
-// 		[]float32,
-// 		t.Len(),
-// 	)
-
-// 	for i := 0; i < t.Len(); i++ {
-
-// 		data[i] = t.FlatAt(i)
-
-// 	}
-
-// 	return SerializedTensor{
-
-// 		Shape: t.Shape().Values(),
-
-// 		Data: data,
-// 	}
-
-// }
-
-// func deserializeTensor(
-// 	s SerializedTensor,
-// ) tensor.Tensor {
-
-// 	out :=
-// 		tensor.New(
-// 			shape.New(
-// 				s.Shape...,
-// 			),
-// 		)
-
-// 	for i, v := range s.Data {
-
-// 		out.FlatSet(
-// 			i,
-// 			v,
-// 		)
-
-// 	}
-
-// 	return out
-
-// }
-// func (d Dropout) Forward(
-// 	input *autograd.Variable,
-// ) *autograd.Variable {
-
-// 	// evaluation mode
-// 	if !d.Training() {
-
-// 		return input
-
-// 	}
-
-// 	mask :=
-// 		tensor.New(
-// 			input.Data().Shape(),
-// 		)
-
-// 	for i := 0; i < mask.Len(); i++ {
-
-// 		if rand.Float32() > d.P {
-
-// 			mask.FlatSet(
-// 				i,
-// 				1,
-// 			)
-
-// 		} else {
-
-// 			mask.FlatSet(
-// 				i,
-// 				0,
-// 			)
-
-// 		}
-
-// 	}
-
-// 	out :=
-// 		input.Data().Mul(
-// 			mask,
-// 		)
-
-// 	return *autograd.NewVariable(
-// 		out,
-// 		input.RequiresGrad(),
-// 	)
-
-// }
-// func (d Dropout) Parameters() []Parameter {
-
-// 	return nil
-
-// }
-
-// func NewMaxPool2D(
-// 	kernelH int,
-// 	kernelW int,
-// ) *MaxPool2D {
-
-// 	return &MaxPool2D{
-
-// 		BaseModule: NewBaseModule(),
-
-// 		KernelH: kernelH,
-
-// 		KernelW: kernelW,
-
-// 		Stride: kernelH,
-// 	}
-
-// }
-// func (m *MaxPool2D) Forward(
-// 	input *autograd.Variable,
-// ) *autograd.Variable {
-
-// 	in := input.Data()
-
-// 	d := in.Shape().Values()
-
-// 	if len(d) != 4 {
-
-// 		panic("MaxPool2D expects [N,C,H,W]")
-
-// 	}
-
-// 	n := d[0]
-// 	c := d[1]
-// 	h := d[2]
-// 	w := d[3]
-
-// 	outH :=
-// 		(h-m.KernelH)/m.Stride + 1
-
-// 	outW :=
-// 		(w-m.KernelW)/m.Stride + 1
-
-// 	out :=
-// 		tensor.New(
-// 			shape.New(
-// 				n,
-// 				c,
-// 				outH,
-// 				outW,
-// 			),
-// 		)
-
-// 	for b := 0; b < n; b++ {
-
-// 		for ch := 0; ch < c; ch++ {
-
-// 			for i := 0; i < outH; i++ {
-
-// 				for j := 0; j < outW; j++ {
-
-// 					max :=
-// 						float32(-1e30)
-
-// 					for kh := 0; kh < m.KernelH; kh++ {
-
-// 						for kw := 0; kw < m.KernelW; kw++ {
-
-// 							v :=
-// 								in.At(
-// 									b,
-// 									ch,
-// 									i*m.Stride+kh,
-// 									j*m.Stride+kw,
-// 								)
-
-// 							if v > max {
-
-// 								max = v
-
-// 							}
-
-// 						}
-
-// 					}
-
-// 					out.Set(
-// 						max,
-// 						b,
-// 						ch,
-// 						i,
-// 						j,
-// 					)
-
-// 				}
-
-// 			}
-
-// 		}
-
-// 	}
-
-// 	return *autograd.NewVariable(
-// 		out,
-// 		false,
-// 	)
-
-// }
