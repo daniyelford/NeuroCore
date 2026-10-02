@@ -72,6 +72,21 @@ func (s Sequential) Parameters() []Parameter {
 func (s *Sequential) Children() []Module {
 	return s.Modules
 }
+func (s *Sequential) Train() {
+	s.BaseModule.Train()
+
+	for _, child := range s.Modules {
+		child.Train()
+	}
+}
+
+func (s *Sequential) Eval() {
+	s.BaseModule.Eval()
+
+	for _, child := range s.Modules {
+		child.Eval()
+	}
+}
 func NewMSELoss() *MSELoss {
 	return &MSELoss{BaseModule: NewBaseModule("MSELoss")}
 }
@@ -661,14 +676,12 @@ func NewReflectionPad2D(
 	left,
 	right int,
 ) *ReflectionPad2D {
-
 	return &ReflectionPad2D{
 		BaseModule: NewBaseModule("ReflectionPad2D"),
-
-		PadTop:    top,
-		PadBottom: bottom,
-		PadLeft:   left,
-		PadRight:  right,
+		PadTop:     top,
+		PadBottom:  bottom,
+		PadLeft:    left,
+		PadRight:   right,
 	}
 }
 func (r *ReflectionPad2D) Forward(

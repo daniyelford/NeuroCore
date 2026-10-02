@@ -1145,3 +1145,277 @@ func TestConv2DForward(t *testing.T) {
 	}
 
 }
+func TestSequentialForward(t *testing.T) {
+	linear1 := nn.NewLinear(2, 3)
+	linear2 := nn.NewLinear(3, 1)
+
+	model := nn.NewSequential(
+		linear1,
+		linear2,
+	)
+
+	x := tensor.New(shape.New(1, 2))
+
+	input := autograd.NewVariable(x, false)
+	out := model.Forward(input)
+
+	if out == nil {
+		t.Fatal("sequential forward returned nil")
+	}
+
+	s := out.Data().Shape().Values()
+
+	if len(s) != 2 {
+		t.Fatalf("wrong output dimensions: got %d", len(s))
+	}
+
+	if s[0] != 1 || s[1] != 1 {
+		t.Fatalf("wrong output shape: got %v", s)
+	}
+}
+
+func TestSequentialParameters(t *testing.T) {
+	linear1 := nn.NewLinear(2, 3)
+	linear2 := nn.NewLinear(3, 1)
+
+	model := nn.NewSequential(
+		linear1,
+		linear2,
+	)
+
+	params := model.Parameters()
+
+	// Linear(2 -> 3):
+	// weight + bias = 2
+	//
+	// Linear(3 -> 1):
+	// weight + bias = 2
+	//
+	// total = 4
+	if len(params) != 4 {
+		t.Fatalf("wrong parameter count: got %d expected 4", len(params))
+	}
+}
+
+func TestSequentialStateDict1(t *testing.T) {
+	linear1 := nn.NewLinear(2, 3)
+	linear2 := nn.NewLinear(3, 1)
+
+	model := nn.NewSequential(
+		linear1,
+		linear2,
+	)
+
+	state := model.StateDict()
+
+	if state == nil {
+		t.Fatal("state dict is nil")
+	}
+
+	expectedKeys := []string{
+		"0.weight",
+		"0.bias",
+		"1.weight",
+		"1.bias",
+	}
+
+	for _, key := range expectedKeys {
+		if _, ok := state[key]; !ok {
+			t.Fatalf("missing state dict key: %s", key)
+		}
+	}
+
+	if len(state) != len(expectedKeys) {
+		t.Fatalf(
+			"wrong state dict size: got %d expected %d",
+			len(state),
+			len(expectedKeys),
+		)
+	}
+}
+
+func TestSequentialTrainEval(t *testing.T) {
+	linear1 := nn.NewLinear(2, 3)
+	linear2 := nn.NewLinear(3, 1)
+
+	model := nn.NewSequential(
+		linear1,
+		linear2,
+	)
+
+	model.Eval()
+
+	if model.Training() {
+		t.Fatal("sequential should be in eval mode")
+	}
+
+	if linear1.Training() {
+		t.Fatal("first child should be in eval mode")
+	}
+
+	if linear2.Training() {
+		t.Fatal("second child should be in eval mode")
+	}
+
+	model.Train()
+
+	if !model.Training() {
+		t.Fatal("sequential should be in training mode")
+	}
+
+	if !linear1.Training() {
+		t.Fatal("first child should be in training mode")
+	}
+
+	if !linear2.Training() {
+		t.Fatal("second child should be in training mode")
+	}
+}
+
+func TestSequentialGraph(t *testing.T) {
+	linear1 := nn.NewLinear(2, 3)
+	linear2 := nn.NewLinear(3, 1)
+
+	model := nn.NewSequential(
+		linear1,
+		linear2,
+	)
+
+	x := tensor.New(shape.New(1, 2))
+
+	input := autograd.NewVariable(x, true)
+
+	out := model.Forward(input)
+
+	if out == nil {
+		t.Fatal("sequential forward returned nil")
+	}
+
+	if out.Node() == nil {
+		t.Fatal("sequential output node is nil")
+	}
+
+	if out.Node().Op == nil {
+		t.Fatal("sequential graph is disconnected")
+	}
+
+	if len(out.Node().Parents) == 0 {
+		t.Fatal("sequential graph has no parents")
+	}
+}
+
+func TestLinearTrainEval(t *testing.T) {
+	linear := nn.NewLinear(2, 3)
+
+	if !linear.Training() {
+		t.Fatal("linear should start in training mode")
+	}
+
+	linear.Eval()
+
+	if linear.Training() {
+		t.Fatal("linear should be in eval mode after Eval()")
+	}
+
+	linear.Train()
+
+	if !linear.Training() {
+		t.Fatal("linear should be in training mode after Train()")
+	}
+}
+func TestNestedSequential(t *testing.T) {
+	inner := nn.NewSequential(
+		nn.NewLinear(3, 4),
+		nn.NewLinear(4, 1),
+	)
+
+	model := nn.NewSequential(
+		nn.NewLinear(2, 3),
+		inner,
+	)
+
+	x := tensor.New(shape.New(1, 2))
+	input := autograd.NewVariable(x, true)
+
+	out := model.Forward(input)
+
+	if out == nil {
+		t.Fatal("nested sequential forward returned nil")
+	}
+
+	s := out.Data().Shape().Values()
+
+	if len(s) != 2 || s[0] != 1 || s[1] != 1 {
+		t.Fatalf("wrong nested output shape: %v", s)
+	}
+
+	params := model.Parameters()
+
+	if len(params) != 6 {
+		t.Fatalf(
+			"wrong nested parameter count: got %d expected 6",
+			len(params),
+		)
+	}
+
+	state := model.StateDict()
+
+	expectedKeys := []string{
+		"0.weight",
+		"0.bias",
+		"1.0.weight",
+		"1.0.bias",
+		"1.1.weight",
+		"1.1.bias",
+	}
+
+	for _, key := range expectedKeys {
+		if _, ok := state[key]; !ok {
+			t.Fatalf("missing nested state dict key: %s", key)
+		}
+	}
+
+	model.Eval()
+
+	if model.Training() {
+		t.Fatal("outer sequential should be in eval mode")
+	}
+
+	if inner.Training() {
+		t.Fatal("inner sequential should be in eval mode")
+	}
+
+	model.Train()
+
+	if !model.Training() {
+		t.Fatal("outer sequential should be in training mode")
+	}
+
+	if !inner.Training() {
+		t.Fatal("inner sequential should be in training mode")
+	}
+
+	// Verify the nested Linear modules by calling their public
+	// Train/Eval behavior through the Module interface.
+	for _, child := range inner.Modules {
+		child.Eval()
+	}
+
+	for _, child := range inner.Modules {
+		if child.Name() == "" {
+			t.Fatal("nested child has empty name")
+		}
+	}
+
+	for _, child := range inner.Modules {
+		child.Train()
+	}
+
+	if out.Node() == nil {
+		t.Fatal("nested sequential output node is nil")
+	}
+
+	if out.Node().Op == nil {
+		t.Fatal("nested sequential graph is disconnected")
+	}
+}
